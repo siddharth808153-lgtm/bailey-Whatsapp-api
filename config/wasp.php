@@ -17,6 +17,7 @@ return [
     ],
     'message_delay_min' => env('MSG_DELAY_MIN', 3),
     'message_delay_max' => env('MSG_DELAY_MAX', 15),
+    'allow_registration' => env('ALLOW_REGISTRATION', true),
     'trial_days' => env('TRIAL_DAYS', 7),
     'app_name' => env('WASP_APP_NAME', 'WASp'),
     'app_url' => env('APP_URL', 'http://localhost:8000'),

@@ -2,10 +2,13 @@
 
 use App\Http\Controllers\Api\AuthController;
 use App\Http\Controllers\Api\BillingController;
+use App\Http\Controllers\Api\ContactController;
+use App\Http\Controllers\Api\ContactListController;
 use App\Http\Controllers\Api\InstanceController;
 use App\Http\Controllers\Api\InternalController;
 use App\Http\Controllers\Api\ResellerController;
 use App\Http\Controllers\Api\SuperAdminController;
+use App\Http\Controllers\Api\TagController;
 use Illuminate\Support\Facades\Route;
 
 /*
@@ -36,6 +39,7 @@ Route::prefix('internal')->group(function () {
     Route::post('/campaign/message-status', [InternalController::class, 'updateCampaignMessageStatus']);
     Route::post('/chatbot/incoming', [InternalController::class, 'handleIncomingMessage']);
     Route::post('/warmup/progress', [InternalController::class, 'updateWarmupProgress']);
+    Route::post('/contact/validity', [InternalController::class, 'updateContactValidity']);
 });
 
 // -----------------------------------------------------------------------
@@ -107,7 +111,38 @@ Route::middleware(['auth:sanctum', 'track.login'])->group(function () {
 
         // Part 4 — Contacts & Lists Management
         Route::prefix('contacts')->group(function () {
-            // Placeholder: Contact CRUD, import/export, lists
+            Route::get('/', [ContactController::class, 'index']);
+            Route::post('/', [ContactController::class, 'store']);
+            Route::get('/export', [ContactController::class, 'exportCsv']);
+            Route::post('/preview-csv', [ContactController::class, 'previewCsv']);
+            Route::post('/import', [ContactController::class, 'import']);
+            Route::post('/bulk-delete', [ContactController::class, 'bulkDestroy']);
+            Route::post('/bulk-opt-out', [ContactController::class, 'bulkOptOut']);
+            Route::post('/check-numbers', [ContactController::class, 'checkNumbers']);
+            Route::post('/send-message', [ContactController::class, 'quickSend']);
+            Route::get('/{id}', [ContactController::class, 'show']);
+            Route::put('/{id}', [ContactController::class, 'update']);
+            Route::delete('/{id}', [ContactController::class, 'destroy']);
+            Route::post('/{id}/opt-out', [ContactController::class, 'optOut']);
+            Route::post('/{id}/opt-in', [ContactController::class, 'optIn']);
+        });
+
+        // Contact Lists
+        Route::prefix('lists')->group(function () {
+            Route::get('/', [ContactListController::class, 'index']);
+            Route::post('/', [ContactListController::class, 'store']);
+            Route::get('/{id}', [ContactListController::class, 'show']);
+            Route::put('/{id}', [ContactListController::class, 'update']);
+            Route::delete('/{id}', [ContactListController::class, 'destroy']);
+            Route::post('/{id}/contacts/add', [ContactListController::class, 'addContacts']);
+            Route::post('/{id}/contacts/remove', [ContactListController::class, 'removeContacts']);
+            Route::post('/{id}/import', [ContactListController::class, 'importToList']);
+        });
+
+        // Tags
+        Route::prefix('tags')->group(function () {
+            Route::get('/', [TagController::class, 'index']);
+            Route::post('/bulk-tag', [TagController::class, 'bulkTag']);
         });
 
         // Part 5 — Campaigns & Messaging

@@ -255,4 +255,32 @@ class InternalController extends Controller
 
         return response()->json(['success' => true]);
     }
+
+    /**
+     * Update contact validity callback from Node.js service.
+     */
+    public function updateContactValidity(Request $request)
+    {
+        if (!$this->verifySecret($request)) {
+            return response()->json(['success' => false, 'message' => 'Unauthorized'], 401);
+        }
+
+        $request->validate([
+            'phone' => 'required|string',
+            'user_id' => 'required|integer',
+            'is_invalid' => 'required|boolean',
+        ]);
+
+        $contact = \App\Models\Contact::where('phone', $request->phone)
+            ->where('user_id', $request->user_id)
+            ->first();
+
+        if ($contact) {
+            $contact->update([
+                'is_invalid' => $request->is_invalid,
+            ]);
+        }
+
+        return response()->json(['success' => true]);
+    }
 }

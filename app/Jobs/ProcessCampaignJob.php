@@ -23,6 +23,7 @@ class ProcessCampaignJob implements ShouldQueue
     public $campaign;
     public $timeout = 7200; // 2 hours
     public $tries = 1;
+    public $queue = 'campaigns';
 
     /**
      * Create a new job instance.

@@ -69,3 +69,68 @@ export interface WhatsappInstance {
   connected_at?: string
   disconnected_at?: string
 }
+
+export interface Campaign {
+  id: number
+  name: string
+  status: 'draft' | 'scheduled' | 'running' | 'paused' | 'completed' | 'failed' | 'cancelled'
+  message_type: 'text' | 'image' | 'video' | 'document' | 'audio'
+  message_body: string
+  media_url?: string
+  media_filename?: string
+  footer?: string
+  buttons?: { text: string }[]
+  total_contacts: number
+  sent_count: number
+  delivered_count: number
+  failed_count: number
+  min_delay_seconds: number
+  max_delay_seconds: number
+  scheduled_at?: string
+  started_at?: string
+  completed_at?: string
+  whatsapp_instance?: WhatsappInstance
+  contact_list?: ContactList
+  created_at: string
+}
+
+export interface CampaignMessage {
+  id: number
+  campaign_id: number
+  contact_id: number
+  phone: string
+  status: 'pending' | 'sent' | 'delivered' | 'failed' | 'skipped'
+  error_message?: string
+  sent_at?: string
+  delivered_at?: string
+  contact?: Contact
+}
+
+export interface MessageTemplate {
+  id: number
+  name: string
+  category: 'promotional' | 'transactional' | 'greeting' | 'follow_up' | 'other'
+  message_type: 'text' | 'image' | 'video' | 'document' | 'audio'
+  body: string
+  media_url?: string
+  media_filename?: string
+  footer?: string
+  buttons?: { text: string }[]
+  created_at: string
+}
+
+export interface CampaignReport {
+  campaign: Campaign
+  summary: {
+    total: number
+    sent: number
+    delivered: number
+    failed: number
+    skipped: number
+    delivery_rate: number
+    failure_rate: number
+    duration_minutes: number
+  }
+  messages: CampaignMessage[]
+  hourly_breakdown: { hour: string; sent: number; failed: number }[]
+}

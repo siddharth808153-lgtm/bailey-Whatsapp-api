@@ -5,6 +5,11 @@ import { ContactsPage } from './pages/contacts/ContactsPage.js'
 import { ContactListsPage } from './pages/contacts/ContactListsPage.js'
 import { ContactListDetailPage } from './pages/contacts/ContactListDetailPage.js'
 import { TagsPage } from './pages/contacts/TagsPage.js'
+import { CampaignsPage } from './pages/campaigns/CampaignsPage.js'
+import { CreateCampaignPage } from './pages/campaigns/CreateCampaignPage.js'
+import { CampaignDetailPage } from './pages/campaigns/CampaignDetailPage.js'
+import { CampaignReportPage } from './pages/campaigns/CampaignReportPage.js'
+import { MessageTemplatesPage } from './pages/campaigns/MessageTemplatesPage.js'
 
 // Simple placeholder page for connection instances
 const InstancesPagePlaceholder: React.FC = () => (
@@ -33,6 +38,13 @@ export const App: React.FC = () => {
             <Route path="/contacts/lists" element={<ContactListsPage />} />
             <Route path="/contacts/lists/:id" element={<ContactListDetailPage />} />
             <Route path="/contacts/tags" element={<TagsPage />} />
+
+            {/* Campaigns routes */}
+            <Route path="/campaigns" element={<CampaignsPage />} />
+            <Route path="/campaigns/new" element={<CreateCampaignPage />} />
+            <Route path="/campaigns/:id" element={<CampaignDetailPage />} />
+            <Route path="/campaigns/:id/report" element={<CampaignReportPage />} />
+            <Route path="/campaigns/templates" element={<MessageTemplatesPage />} />
 
             {/* Fallback redirect */}
             <Route path="*" element={<Navigate to="/contacts" replace />} />

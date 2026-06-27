@@ -2,10 +2,12 @@
 
 use App\Http\Controllers\Api\AuthController;
 use App\Http\Controllers\Api\BillingController;
+use App\Http\Controllers\Api\CampaignController;
 use App\Http\Controllers\Api\ContactController;
 use App\Http\Controllers\Api\ContactListController;
 use App\Http\Controllers\Api\InstanceController;
 use App\Http\Controllers\Api\InternalController;
+use App\Http\Controllers\Api\MessageTemplateController;
 use App\Http\Controllers\Api\ResellerController;
 use App\Http\Controllers\Api\SuperAdminController;
 use App\Http\Controllers\Api\TagController;
@@ -37,6 +39,7 @@ Route::prefix('internal')->group(function () {
     Route::post('/instance/banned', [InternalController::class, 'reportBanned']);
     Route::post('/message/log', [InternalController::class, 'logMessage']);
     Route::post('/campaign/message-status', [InternalController::class, 'updateCampaignMessageStatus']);
+    Route::post('/campaign/paused', [InternalController::class, 'campaignPaused']);
     Route::post('/chatbot/incoming', [InternalController::class, 'handleIncomingMessage']);
     Route::post('/warmup/progress', [InternalController::class, 'updateWarmupProgress']);
     Route::post('/contact/validity', [InternalController::class, 'updateContactValidity']);
@@ -147,7 +150,25 @@ Route::middleware(['auth:sanctum', 'track.login'])->group(function () {
 
         // Part 5 — Campaigns & Messaging
         Route::prefix('campaigns')->group(function () {
-            // Placeholder: Campaign CRUD, send, schedule, logs
+            Route::get('/', [CampaignController::class, 'index']);
+            Route::post('/', [CampaignController::class, 'store']);
+            Route::get('/{id}', [CampaignController::class, 'show']);
+            Route::delete('/{id}', [CampaignController::class, 'destroy']);
+            Route::post('/{id}/pause', [CampaignController::class, 'pause']);
+            Route::post('/{id}/resume', [CampaignController::class, 'resume']);
+            Route::post('/{id}/cancel', [CampaignController::class, 'cancel']);
+            Route::get('/{id}/report', [CampaignController::class, 'report']);
+            Route::post('/{id}/duplicate', [CampaignController::class, 'duplicate']);
+        });
+
+        // Message Templates
+        Route::prefix('templates')->group(function () {
+            Route::get('/', [MessageTemplateController::class, 'index']);
+            Route::post('/', [MessageTemplateController::class, 'store']);
+            Route::get('/{id}', [MessageTemplateController::class, 'show']);
+            Route::put('/{id}', [MessageTemplateController::class, 'update']);
+            Route::delete('/{id}', [MessageTemplateController::class, 'destroy']);
+            Route::get('/{id}/use', [MessageTemplateController::class, 'useInCampaign']);
         });
 
         // Part 6 — Chatbot & AI

@@ -47,3 +47,24 @@ export const TAGS = {
   LIST: '/tags',
   BULK_TAG: '/tags/bulk-tag',
 }
+
+export const CAMPAIGNS = {
+  LIST: '/campaigns',
+  CREATE: '/campaigns',
+  DETAIL: (id: number) => `/campaigns/${id}`,
+  DELETE: (id: number) => `/campaigns/${id}`,
+  PAUSE: (id: number) => `/campaigns/${id}/pause`,
+  RESUME: (id: number) => `/campaigns/${id}/resume`,
+  CANCEL: (id: number) => `/campaigns/${id}/cancel`,
+  REPORT: (id: number) => `/campaigns/${id}/report`,
+  DUPLICATE: (id: number) => `/campaigns/${id}/duplicate`,
+}
+
+export const TEMPLATES = {
+  LIST: '/templates',
+  CREATE: '/templates',
+  DETAIL: (id: number) => `/templates/${id}`,
+  UPDATE: (id: number) => `/templates/${id}`,
+  DELETE: (id: number) => `/templates/${id}`,
+  USE: (id: number) => `/templates/${id}/use`,
+}

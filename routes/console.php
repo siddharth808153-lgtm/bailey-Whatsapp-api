@@ -27,3 +27,10 @@ Schedule::call(function () {
     \App\Models\WhatsappInstance::query()
         ->update(['messages_sent_today' => 0]);
 })->dailyAt('00:00')->name('reset-daily-counts');
+
+// Trigger scheduled campaigns every minute
+Schedule::command('campaigns:process-scheduled')
+    ->everyMinute()
+    ->name('process-scheduled-campaigns')
+    ->withoutOverlapping();
+

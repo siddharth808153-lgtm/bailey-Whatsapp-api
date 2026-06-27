@@ -65,6 +65,42 @@ export const Sidebar: React.FC = () => {
             </NavLink>
           </div>
 
+          {/* Campaigns Section Group */}
+          <div className="space-y-1.5">
+            <p className="text-[10px] font-bold text-gray-500 uppercase tracking-wider px-3 mb-2">Campaigns & Messaging</p>
+            
+            <NavLink
+              to="/campaigns"
+              end
+              className={({ isActive }) =>
+                `flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-semibold transition-all ${isActive ? 'bg-blue-600 text-white shadow-lg shadow-blue-900/30' : 'hover:bg-gray-800 hover:text-white'}`
+              }
+            >
+              <span>📢</span>
+              <span>All Campaigns</span>
+            </NavLink>
+
+            <NavLink
+              to="/campaigns/new"
+              className={({ isActive }) =>
+                `flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-semibold transition-all ${isActive ? 'bg-blue-600 text-white shadow-lg shadow-blue-900/30' : 'hover:bg-gray-800 hover:text-white'}`
+              }
+            >
+              <span>➕</span>
+              <span>New Campaign</span>
+            </NavLink>
+
+            <NavLink
+              to="/campaigns/templates"
+              className={({ isActive }) =>
+                `flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-semibold transition-all ${isActive ? 'bg-blue-600 text-white shadow-lg shadow-blue-900/30' : 'hover:bg-gray-800 hover:text-white'}`
+              }
+            >
+              <span>📝</span>
+              <span>Message Templates</span>
+            </NavLink>
+          </div>
+
         </nav>
       </div>
 

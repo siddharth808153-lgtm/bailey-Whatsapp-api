@@ -143,54 +143,7 @@ class InternalController extends Controller
         return response()->json(['success' => true, 'data' => $log]);
     }
 
-    /**
-     * Update campaign single message delivery status and campaign aggregates.
-     */
-    public function updateCampaignMessageStatus(Request $request)
-    {
-        if (!$this->verifySecret($request)) {
-            return response()->json(['success' => false, 'message' => 'Unauthorized'], 401);
-        }
 
-        $request->validate([
-            'campaign_message_id' => 'required|integer',
-            'status' => 'required|string',
-            'error_message' => 'nullable|string',
-        ]);
-
-        $campaignMessage = CampaignMessage::find($request->campaign_message_id);
-
-        if (!$campaignMessage) {
-            return response()->json(['success' => false, 'message' => 'Campaign message not found'], 404);
-        }
-
-        $status = $request->status;
-        $campaignMessage->status = $status;
-
-        if ($status === 'sent') {
-            $campaignMessage->sent_at = now();
-        } elseif ($status === 'delivered') {
-            $campaignMessage->delivered_at = now();
-        } elseif ($status === 'failed') {
-            $campaignMessage->error_message = $request->error_message;
-        }
-
-        $campaignMessage->save();
-
-        // Update Campaign counts
-        $campaign = Campaign::find($campaignMessage->campaign_id);
-        if ($campaign) {
-            if ($status === 'sent') {
-                $campaign->increment('sent_count');
-            } elseif ($status === 'delivered') {
-                $campaign->increment('delivered_count');
-            } elseif ($status === 'failed' || $status === 'skipped') {
-                $campaign->increment('failed_count');
-            }
-        }
-
-        return response()->json(['success' => true]);
-    }
 
     /**
      * Handle incoming chatbot message. Stubbed for now.
@@ -278,6 +231,96 @@ class InternalController extends Controller
         if ($contact) {
             $contact->update([
                 'is_invalid' => $request->is_invalid,
+            ]);
+        }
+
+        return response()->json(['success' => true]);
+    }
+
+    /**
+     * Callback from Node.js updating individual campaign message status.
+     */
+    public function updateCampaignMessageStatus(Request $request)
+    {
+        if (!$this->verifySecret($request)) {
+            return response()->json(['success' => false, 'message' => 'Unauthorized'], 401);
+        }
+
+        $request->validate([
+            'campaign_message_id' => 'required|integer',
+            'status' => 'required|string|in:sent,delivered,failed,skipped',
+            'error_message' => 'nullable|string',
+            'sent_at' => 'nullable',
+        ]);
+
+        $msg = \App\Models\CampaignMessage::find($request->campaign_message_id);
+        if (!$msg) {
+            return response()->json(['success' => false, 'message' => 'Message log not found'], 404);
+        }
+
+        $oldStatus = $msg->status;
+
+        $msg->status = $request->status;
+        $msg->error_message = $request->error_message;
+        if ($request->filled('sent_at')) {
+            $msg->sent_at = $request->sent_at;
+        }
+        if ($request->status === 'delivered') {
+            $msg->delivered_at = now();
+        }
+        $msg->save();
+
+        $campaign = $msg->campaign;
+        if ($campaign && $oldStatus !== $request->status) {
+            if ($request->status === 'sent') {
+                $campaign->increment('sent_count');
+                $instance = $campaign->whatsappInstance;
+                if ($instance) {
+                    $instance->increment('messages_sent_today');
+                    $instance->increment('messages_sent_this_month');
+                }
+                
+                $user = $campaign->user;
+                if ($user) {
+                    $user->increment('messages_sent_this_month');
+                }
+            } elseif ($request->status === 'delivered') {
+                $campaign->increment('delivered_count');
+            } elseif ($request->status === 'failed') {
+                $campaign->increment('failed_count');
+            }
+
+            $skipped = $campaign->campaignMessages()->where('status', 'skipped')->count();
+            $totalProcessed = $campaign->sent_count + $campaign->failed_count + $skipped;
+
+            if ($totalProcessed >= $campaign->total_contacts) {
+                $campaign->update([
+                    'status' => 'completed',
+                    'completed_at' => now(),
+                ]);
+            }
+        }
+
+        return response()->json(['success' => true]);
+    }
+
+    /**
+     * Callback from Node.js when campaign is paused.
+     */
+    public function campaignPaused(Request $request)
+    {
+        if (!$this->verifySecret($request)) {
+            return response()->json(['success' => false, 'message' => 'Unauthorized'], 401);
+        }
+
+        $request->validate([
+            'campaign_id' => 'required|integer',
+        ]);
+
+        $campaign = \App\Models\Campaign::find($request->campaign_id);
+        if ($campaign && $campaign->status === 'running') {
+            $campaign->update([
+                'status' => 'paused',
             ]);
         }
 

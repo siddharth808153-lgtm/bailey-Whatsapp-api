@@ -2,6 +2,8 @@
 
 use App\Http\Controllers\Api\AuthController;
 use App\Http\Controllers\Api\BillingController;
+use App\Http\Controllers\Api\InstanceController;
+use App\Http\Controllers\Api\InternalController;
 use App\Http\Controllers\Api\ResellerController;
 use App\Http\Controllers\Api\SuperAdminController;
 use Illuminate\Support\Facades\Route;
@@ -24,6 +26,16 @@ Route::prefix('auth')->group(function () {
     Route::post('/login', [AuthController::class, 'login']);
     Route::post('/forgot-password', [AuthController::class, 'forgotPassword']);
     Route::post('/reset-password', [AuthController::class, 'resetPassword']);
+});
+
+// Internal webhook callback routes (no Sanctum authentication, verified by secret header)
+Route::prefix('internal')->group(function () {
+    Route::post('/instance/status', [InternalController::class, 'updateInstanceStatus']);
+    Route::post('/instance/banned', [InternalController::class, 'reportBanned']);
+    Route::post('/message/log', [InternalController::class, 'logMessage']);
+    Route::post('/campaign/message-status', [InternalController::class, 'updateCampaignMessageStatus']);
+    Route::post('/chatbot/incoming', [InternalController::class, 'handleIncomingMessage']);
+    Route::post('/warmup/progress', [InternalController::class, 'updateWarmupProgress']);
 });
 
 // -----------------------------------------------------------------------
@@ -84,7 +96,13 @@ Route::middleware(['auth:sanctum', 'track.login'])->group(function () {
 
         // Part 3 — WhatsApp Instance Management
         Route::prefix('instances')->group(function () {
-            // Placeholder: Instance CRUD, QR code, connect/disconnect
+            Route::get('/', [InstanceController::class, 'index']);
+            Route::post('/', [InstanceController::class, 'store']);
+            Route::get('/{id}', [InstanceController::class, 'show']);
+            Route::post('/{id}/connect', [InstanceController::class, 'connect']);
+            Route::post('/{id}/disconnect', [InstanceController::class, 'disconnect']);
+            Route::post('/{id}/logout', [InstanceController::class, 'logout']);
+            Route::delete('/{id}', [InstanceController::class, 'destroy']);
         });
 
         // Part 4 — Contacts & Lists Management

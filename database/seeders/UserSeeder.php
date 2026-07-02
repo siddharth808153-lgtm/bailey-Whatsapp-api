@@ -53,7 +53,7 @@ class UserSeeder extends Seeder
         ]);
 
         // 3. User (assigned to Reseller, with Starter plan)
-        User::create([
+        $user = User::create([
             'name' => 'Demo User',
             'email' => 'user@wasp.com',
             'password' => Hash::make('secret123'),
@@ -63,5 +63,18 @@ class UserSeeder extends Seeder
             'is_active' => true,
             'email_verified_at' => now(),
         ]);
+
+        if ($starterPlan) {
+            \App\Models\Subscription::create([
+                'user_id' => $user->id,
+                'plan_id' => $starterPlan->id,
+                'status' => 'active',
+                'billing_cycle' => 'monthly',
+                'amount_paid' => 19,
+                'starts_at' => now(),
+                'ends_at' => now()->addYears(5),
+                'payment_method' => 'stripe',
+            ]);
+        }
     }
 }

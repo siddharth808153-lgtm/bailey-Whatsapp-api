@@ -5,6 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <title>WASp Platform</title>
     @fonts
+    @viteReactRefresh
     @vite(['resources/css/app.css', 'resources/js/app.js'])
 </head>
 <body class="bg-gray-50/50 text-gray-800 antialiased min-h-screen">

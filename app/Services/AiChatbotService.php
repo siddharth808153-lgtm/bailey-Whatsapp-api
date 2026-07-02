@@ -181,7 +181,7 @@ class AiChatbotService
                 'parts' => [['text' => $message]],
             ];
 
-            $url = 'https://generativelanguage.googleapis.com/v1beta/models/gemini-pro:generateContent?key=' . $key;
+            $url = 'https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=' . $key;
 
             $response = Http::withHeaders([
                 'Content-Type' => 'application/json',
@@ -236,7 +236,7 @@ class AiChatbotService
                 'anthropic-version' => '2023-06-01',
                 'Content-Type' => 'application/json',
             ])->timeout(30)->post('https://api.anthropic.com/v1/messages', [
-                'model' => 'claude-haiku-4-5-20251001',
+                'model' => 'claude-3-5-haiku-20241022',
                 'system' => $system,
                 'messages' => $messages,
                 'max_tokens' => $maxTokens,

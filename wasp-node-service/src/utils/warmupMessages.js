@@ -1,59 +1,39 @@
-// Pool of natural-sounding messages for warmup
-// Randomized to avoid pattern detection
+const WARMUP_MESSAGES = [
+  "Hello, how is your day going?",
+  "Hey there! Just checking in.",
+  "Hi, did you get a chance to look at the document?",
+  "Good morning! Hope you have a productive day.",
+  "Hey! Let's catch up sometime this week.",
+  "Hello, hope all is well with you.",
+  "Hi there, is this number active?",
+  "Quick question: are we meeting today?",
+  "Hi, just testing out the new connection.",
+  "Good afternoon! Just wanted to say hello."
+];
 
-export const warmupMessagePool = [
-  "Hey! How are you doing today? 😊",
-  "Good morning! Hope you have a great day ahead.",
-  "Hi there! Just checking in.",
-  "Hello! Everything good on your end?",
-  "Hey, what's up?",
-  "Hope you're having a wonderful day!",
-  "Good evening! How was your day?",
-  "Hi! Long time no chat. How are things?",
-  "Hey! Just wanted to say hello 👋",
-  "Good afternoon! Hope all is well.",
-  "Hey, how's everything going?",
-  "Hi! Hope you're doing well today.",
-  "Hello there! Just passing by to say hi.",
-  "Hey! How's your week going so far?",
-  "Good morning sunshine! Have a great day 🌞",
-  "Hi! Just wanted to check in on you.",
-  "Hey there! Hope things are going smoothly.",
-  "Hello! Wishing you a productive day.",
-  "Hey! How are you feeling today?",
-  "Hi! Just a quick hello from my end 😄",
-  "Good day! Hope everything is going well.",
-  "Hey, thinking of you. Hope all is good!",
-  "Hi there! Any exciting plans today?",
-  "Hello! Hope your day is going great.",
-  "Hey! Just dropping by to say hi 🙌"
-]
-
-export const warmupReplies = [
-  "I'm doing great, thanks for asking! 😊",
-  "All good here! Hope you're well too.",
-  "Thanks! Things are going well.",
-  "Doing well! How about you?",
-  "Great, thanks! Have a wonderful day!",
-  "All good on my end. Thanks for checking in!",
-  "Doing fantastic! Hope you are too 😊",
-  "Pretty good! Thanks for asking.",
-  "All well here! Hope the same for you.",
-  "Good, thanks! You take care too!"
-]
+const WARMUP_REPLIES = [
+  "Hey! Yes, everything is going great here.",
+  "Hi there. Yes, I saw it, will reply soon.",
+  "Hello. Sure, let's connect tomorrow.",
+  "Good morning! Yes, hope you have a great day too.",
+  "Hey! I'm around, let's chat in the evening.",
+  "Hello. Yes, all is good on my end.",
+  "Hi, yes, this number is active and working.",
+  "Yes, we are still on for today's meeting.",
+  "Awesome, connection looks stable!",
+  "Good afternoon! Thanks for reaching out."
+];
 
 export function getRandomMessage() {
-  return warmupMessagePool[
-    Math.floor(Math.random() * warmupMessagePool.length)
-  ]
+  const idx = Math.floor(Math.random() * WARMUP_MESSAGES.length);
+  return WARMUP_MESSAGES[idx];
 }
 
 export function getRandomReply() {
-  return warmupReplies[
-    Math.floor(Math.random() * warmupReplies.length)
-  ]
+  const idx = Math.floor(Math.random() * WARMUP_REPLIES.length);
+  return WARMUP_REPLIES[idx];
 }
 
-export function getRandomDelay(min = 5000, max = 30000) {
-  return Math.floor(Math.random() * (max - min + 1)) + min
+export function getRandomDelay(minMs = 30000, maxMs = 120000) {
+  return Math.floor(Math.random() * (maxMs - minMs + 1)) + minMs;
 }

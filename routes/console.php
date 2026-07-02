@@ -34,3 +34,11 @@ Schedule::command('campaigns:process-scheduled')
     ->name('process-scheduled-campaigns')
     ->withoutOverlapping();
 
+// Process drip campaign sequences every minute
+Schedule::command('drip:process')
+    ->everyMinute()
+    ->name('process-drip-messages')
+    ->withoutOverlapping()
+    ->runInBackground();
+
+

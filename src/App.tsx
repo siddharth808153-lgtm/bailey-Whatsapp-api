@@ -15,6 +15,10 @@ import { FlowBuilderPage } from './pages/chatbot/FlowBuilderPage.js'
 import { ConversationsPage } from './pages/chatbot/ConversationsPage.js'
 import { LoginPage } from './pages/auth/LoginPage.js'
 import { UsersPage } from './pages/admin/UsersPage.js'
+import { DripPage } from './pages/drip/DripPage.js'
+import { SequenceBuilderPage } from './pages/drip/SequenceBuilderPage.js'
+import { EnrollmentsPage } from './pages/drip/EnrollmentsPage.js'
+import { WarmupPage } from './pages/warmup/WarmupPage.js'
 
 // Simple placeholder page for connection instances
 const InstancesPagePlaceholder: React.FC = () => (
@@ -70,6 +74,15 @@ export const App: React.FC = () => {
             <Route path="/chatbot" element={<ChatbotPage />} />
             <Route path="/chatbot/flows/:id" element={<FlowBuilderPage />} />
             <Route path="/chatbot/conversations" element={<ConversationsPage />} />
+
+            {/* Drip Campaigns routes */}
+            <Route path="/drip" element={<DripPage />} />
+            <Route path="/drip/new" element={<SequenceBuilderPage />} />
+            <Route path="/drip/:id/edit" element={<SequenceBuilderPage />} />
+            <Route path="/drip/:id/enrollments" element={<EnrollmentsPage />} />
+
+            {/* Number Warmer routes */}
+            <Route path="/warmup" element={<WarmupPage />} />
 
             {/* Admin routes */}
             <Route path="/admin/users" element={<UsersPage />} />

@@ -13,6 +13,10 @@ use App\Http\Controllers\Api\MessageTemplateController;
 use App\Http\Controllers\Api\ResellerController;
 use App\Http\Controllers\Api\SuperAdminController;
 use App\Http\Controllers\Api\TagController;
+use App\Http\Controllers\Api\DripSequenceController;
+use App\Http\Controllers\Api\DripStepController;
+use App\Http\Controllers\Api\DripEnrollmentController;
+use App\Http\Controllers\Api\WarmupController;
 use Illuminate\Support\Facades\Route;
 
 /*
@@ -196,11 +200,37 @@ Route::middleware(['auth:sanctum', 'track.login'])->group(function () {
 
         // Part 7 — Drip Sequences & Warmer
         Route::prefix('drip')->group(function () {
-            // Placeholder: Drip sequences, steps, enrollments
+            // Sequences
+            Route::get('/sequences', [DripSequenceController::class, 'index']);
+            Route::post('/sequences', [DripSequenceController::class, 'store']);
+            Route::get('/sequences/{id}', [DripSequenceController::class, 'show']);
+            Route::put('/sequences/{id}', [DripSequenceController::class, 'update']);
+            Route::delete('/sequences/{id}', [DripSequenceController::class, 'destroy']);
+            Route::post('/sequences/{id}/duplicate', [DripSequenceController::class, 'duplicate']);
+
+            // Steps (nested under sequence)
+            Route::get('/sequences/{sequenceId}/steps', [DripStepController::class, 'index']);
+            Route::post('/sequences/{sequenceId}/steps', [DripStepController::class, 'store']);
+            Route::put('/sequences/{sequenceId}/steps/{id}', [DripStepController::class, 'update']);
+            Route::delete('/sequences/{sequenceId}/steps/{id}', [DripStepController::class, 'destroy']);
+            Route::post('/sequences/{sequenceId}/steps/reorder', [DripStepController::class, 'reorder']);
+
+            // Enrollments
+            Route::get('/sequences/{sequenceId}/enrollments', [DripEnrollmentController::class, 'index']);
+            Route::post('/sequences/{sequenceId}/enroll', [DripEnrollmentController::class, 'enroll']);
+            Route::post('/sequences/{sequenceId}/enroll-list', [DripEnrollmentController::class, 'enrollList']);
+            Route::post('/sequences/{sequenceId}/bulk-action', [DripEnrollmentController::class, 'bulkAction']);
+            Route::post('/sequences/{sequenceId}/enrollments/{id}/pause', [DripEnrollmentController::class, 'pause']);
+            Route::post('/sequences/{sequenceId}/enrollments/{id}/resume', [DripEnrollmentController::class, 'resume']);
+            Route::delete('/sequences/{sequenceId}/enrollments/{id}', [DripEnrollmentController::class, 'remove']);
         });
 
-        Route::prefix('warmer')->group(function () {
-            // Placeholder: Warmup sessions, progress
+        Route::prefix('warmup')->group(function () {
+            Route::get('/', [WarmupController::class, 'index']);
+            Route::post('/start', [WarmupController::class, 'start']);
+            Route::post('/{instanceId}/stop', [WarmupController::class, 'stop']);
+            Route::get('/{instanceId}/status', [WarmupController::class, 'status']);
+            Route::get('/{instanceId}/history', [WarmupController::class, 'history']);
         });
 
         // Part 8 — Groups & Templates

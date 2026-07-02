@@ -186,3 +186,69 @@ export interface ChatbotConversation {
   chatbot_flow?: ChatbotFlow
   created_at?: string
 }
+
+export interface DripSequence {
+  id: number
+  name: string
+  description?: string
+  status: 'active' | 'paused' | 'archived'
+  instance_id: number
+  whatsapp_instance?: WhatsappInstance
+  drip_steps?: DripStep[]
+  steps_count?: number
+  active_enrollments_count?: number
+  completed_enrollments_count?: number
+  created_at: string
+}
+
+export interface DripStep {
+  id: number
+  sequence_id: number
+  step_number: number
+  name?: string
+  message_type: 'text' | 'image' | 'video' | 'document'
+  message_body: string
+  media_url?: string
+  wait_days: number
+  wait_hours: number
+  send_time?: string
+}
+
+export interface DripEnrollment {
+  id: number
+  sequence_id: number
+  contact_id: number
+  instance_id: number
+  current_step: number
+  status: 'active' | 'paused' | 'completed' | 'unsubscribed'
+  enrolled_at: string
+  next_message_at?: string
+  completed_at?: string
+  contact?: Contact
+  current_step_details?: DripStep
+  days_in_sequence?: number
+}
+
+export interface WarmupStatus {
+  id: number
+  name: string
+  phone_number?: string
+  is_warmed: boolean
+  warmup_started_at?: string
+  warmup_completed_at?: string
+  warmup_day: number
+  today_target: number
+  today_sent: number
+  warmup_progress: number
+  can_start_warmup: boolean
+  status: WhatsappInstance['status']
+}
+
+export interface WarmupDay {
+  day: number
+  target: number
+  sent: number
+  completed: boolean
+  active: boolean
+}
+

@@ -173,6 +173,31 @@ export const Sidebar: React.FC = () => {
             </NavLink>
           </div>
 
+          {/* Automation & Warmup Group */}
+          <div className="space-y-1.5">
+            <p className="text-[10px] font-bold text-gray-500 uppercase tracking-wider px-3 mb-2">Automation & Warmup</p>
+            
+            <NavLink
+              to="/drip"
+              className={({ isActive }) =>
+                `flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-semibold transition-all ${isActive ? 'bg-blue-600 text-white shadow-lg shadow-blue-900/30' : 'hover:bg-gray-800 hover:text-white'}`
+              }
+            >
+              <span>🌿</span>
+              <span>Drip Campaigns</span>
+            </NavLink>
+
+            <NavLink
+              to="/warmup"
+              className={({ isActive }) =>
+                `flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-semibold transition-all ${isActive ? 'bg-blue-600 text-white shadow-lg shadow-blue-900/30' : 'hover:bg-gray-800 hover:text-white'}`
+              }
+            >
+              <span>🔥</span>
+              <span>Number Warmer</span>
+            </NavLink>
+          </div>
+
           {/* Super Admin Section Group (only visible to role: super_admin) */}
           {user?.role === 'super_admin' && (
             <div className="space-y-1.5">

@@ -7,6 +7,7 @@ import instanceRoutes from './routes/instanceRoutes.js'
 import messageRoutes from './routes/messageRoutes.js'
 import groupRoutes from './routes/groupRoutes.js'
 import contactRoutes from './routes/contactRoutes.js'
+import warmupRoutes from './routes/warmupRoutes.js'
 import { logger } from './utils/logger.js'
 import { BaileysManager } from './services/BaileysManager.js'
 import config from './config.js'
@@ -43,6 +44,7 @@ app.use('/api/instance', instanceRoutes)
 app.use('/api/message', messageRoutes)
 app.use('/api/group', groupRoutes)
 app.use('/api/contact', contactRoutes)
+app.use('/api/warmup', warmupRoutes)
 
 // 404
 app.use((req, res) => {

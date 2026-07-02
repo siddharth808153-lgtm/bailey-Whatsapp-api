@@ -79,3 +79,30 @@ export const CHATBOT = {
   RULE_DETAIL: (flowId: number, ruleId: number) => `/chatbot/flows/${flowId}/rules/${ruleId}`,
   RULES_REORDER: (flowId: number) => `/chatbot/flows/${flowId}/rules/reorder`,
 }
+
+export const DRIP = {
+  SEQUENCES: '/drip/sequences',
+  SEQUENCE_DETAIL: (id: number) => `/drip/sequences/${id}`,
+  SEQUENCE_CREATE: '/drip/sequences',
+  SEQUENCE_UPDATE: (id: number) => `/drip/sequences/${id}`,
+  SEQUENCE_DELETE: (id: number) => `/drip/sequences/${id}`,
+  SEQUENCE_DUPLICATE: (id: number) => `/drip/sequences/${id}/duplicate`,
+  STEPS: (seqId: number) => `/drip/sequences/${seqId}/steps`,
+  STEP_CREATE: (seqId: number) => `/drip/sequences/${seqId}/steps`,
+  STEP_UPDATE: (seqId: number, id: number) => `/drip/sequences/${seqId}/steps/${id}`,
+  STEP_DELETE: (seqId: number, id: number) => `/drip/sequences/${seqId}/steps/${id}`,
+  STEPS_REORDER: (seqId: number) => `/drip/sequences/${seqId}/steps/reorder`,
+  ENROLLMENTS: (seqId: number) => `/drip/sequences/${seqId}/enrollments`,
+  ENROLL: (seqId: number) => `/drip/sequences/${seqId}/enroll`,
+  ENROLL_LIST: (seqId: number) => `/drip/sequences/${seqId}/enroll-list`,
+  BULK_ACTION: (seqId: number) => `/drip/sequences/${seqId}/bulk-action`,
+}
+
+export const WARMUP = {
+  LIST: '/warmup',
+  START: '/warmup/start',
+  STOP: (id: number) => `/warmup/${id}/stop`,
+  STATUS: (id: number) => `/warmup/${id}/status`,
+  HISTORY: (id: number) => `/warmup/${id}/history`,
+}
+

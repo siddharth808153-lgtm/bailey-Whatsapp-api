@@ -276,6 +276,7 @@ Route::middleware(['auth:sanctum', 'track.login'])->group(function () {
             // Conversations (per agent)
             Route::get('/agents/{agentId}/conversations', [AiConversationController::class, 'index']);
             Route::get('/agents/{agentId}/conversations/{convId}', [AiConversationController::class, 'show']);
+            Route::post('/agents/{agentId}/conversations/{convId}/resolve', [AiConversationController::class, 'resolve']);
             Route::delete('/agents/{agentId}/conversations/{convId}', [AiConversationController::class, 'destroy']);
         });
     });

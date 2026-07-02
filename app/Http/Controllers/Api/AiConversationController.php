@@ -30,6 +30,7 @@ class AiConversationController extends Controller
                 return [
                     'id' => $conv->id,
                     'contact_phone' => $conv->contact_phone,
+                    'is_escalated' => $conv->is_escalated,
                     'message_count' => count($messages),
                     'last_message' => $lastMessage ? mb_substr($lastMessage['content'], 0, 80) : null,
                     'last_message_role' => $lastMessage ? $lastMessage['role'] : null,
@@ -52,10 +53,24 @@ class AiConversationController extends Controller
         return $this->success([
             'id' => $conversation->id,
             'contact_phone' => $conversation->contact_phone,
+            'is_escalated' => $conversation->is_escalated,
             'messages' => $conversation->messages ?? [],
             'created_at' => $conversation->created_at,
             'updated_at' => $conversation->updated_at,
         ]);
+    }
+
+    /**
+     * Resolve the human escalation and re-enable AI replies.
+     */
+    public function resolve(Request $request, $agentId, $convId)
+    {
+        $agent = AiAgent::where('user_id', $request->user()->id)->findOrFail($agentId);
+        $conversation = AiConversation::where('agent_id', $agent->id)->findOrFail($convId);
+
+        $conversation->update(['is_escalated' => false]);
+
+        return $this->success(null, 'Escalation resolved and AI replies re-enabled.');
     }
 
     /**

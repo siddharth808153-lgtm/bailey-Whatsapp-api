@@ -293,6 +293,7 @@ export interface AiKnowledgeDoc {
 export interface AiConversation {
   id: number
   contact_phone?: string
+  is_escalated?: boolean
   message_count?: number
   last_message?: string
   last_message_role?: string

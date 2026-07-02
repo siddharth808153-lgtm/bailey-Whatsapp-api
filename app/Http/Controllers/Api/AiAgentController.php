@@ -131,7 +131,7 @@ class AiAgentController extends Controller
 
         // Get AI reply
         $aiService = app(AiChatbotService::class);
-        $aiReply = $aiService->getAgentReply($agent, $user, $userMessage, $history);
+        $aiReply = $aiService->getAgentReply($agent, $user, $userMessage, $history, null);
 
         if (!$aiReply) {
             return $this->error('AI service failed to respond. Check your API key and try again.', 500);

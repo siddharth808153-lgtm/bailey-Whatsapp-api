@@ -255,6 +255,16 @@ class InternalController extends Controller
 
         $body = trim($request->input('body', ''));
 
+        // Check if there is an escalated AI conversation for this contact and flow's agent
+        if ($flow->agent_id) {
+            $aiConv = \App\Models\AiConversation::where('agent_id', $flow->agent_id)
+                ->where('contact_phone', $phone)
+                ->first();
+            if ($aiConv && $aiConv->is_escalated) {
+                return response()->json(['success' => true, 'data' => ['reply' => null]]);
+            }
+        }
+
         // First message trigger — only for new conversations
         if ($flow->trigger_type === 'first_message') {
             $isFirstMessage = $conversation->wasRecentlyCreated;
@@ -370,7 +380,7 @@ class InternalController extends Controller
             $user = $flow->user;
 
             if ($user && $user->ai_provider && $user->ai_api_key) {
-                $aiReply = $aiService->getAgentReply($agent, $user, $body, $history);
+                $aiReply = $aiService->getAgentReply($agent, $user, $body, $history, $conversation->contact_phone);
 
                 // Also persist to AiConversation for the agent's conversation log
                 if ($aiReply) {

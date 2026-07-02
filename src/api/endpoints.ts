@@ -122,4 +122,5 @@ export const AI = {
   KNOWLEDGE_DELETE: (agentId: number, docId: number) => `/ai/agents/${agentId}/knowledge/${docId}`,
   CONVERSATIONS: (agentId: number) => `/ai/agents/${agentId}/conversations`,
   CONVERSATION_DETAIL: (agentId: number, convId: number) => `/ai/agents/${agentId}/conversations/${convId}`,
+  CONVERSATION_RESOLVE: (agentId: number, convId: number) => `/ai/agents/${agentId}/conversations/${convId}/resolve`,
 }

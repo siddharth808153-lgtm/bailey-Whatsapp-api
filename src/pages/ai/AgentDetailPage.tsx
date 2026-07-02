@@ -139,6 +139,14 @@ export const AgentDetailPage: React.FC = () => {
     } catch { /* silent */ }
   }
 
+  const handleResolveConversation = async (convId: number) => {
+    try {
+      await axios.post(AI.CONVERSATION_RESOLVE(agentId, convId))
+      setViewConv(prev => prev ? { ...prev, is_escalated: false } : null)
+      fetchConversations()
+    } catch { /* silent */ }
+  }
+
   const formatFileSize = (bytes: number) => {
     if (bytes < 1024) return bytes + ' B'
     if (bytes < 1048576) return (bytes / 1024).toFixed(1) + ' KB'
@@ -330,12 +338,17 @@ export const AgentDetailPage: React.FC = () => {
               </div>
             ) : (
               conversations.map(conv => (
-                <div key={conv.id} className="bg-white rounded-2xl border border-gray-100 shadow-sm p-4 flex items-center gap-4 hover:shadow-md transition-all cursor-pointer" onClick={() => handleViewConversation(conv)}>
-                  <div className="w-10 h-10 rounded-full bg-blue-100 flex items-center justify-center text-sm font-black text-blue-700">
+                <div key={conv.id} className={`bg-white rounded-2xl border p-4 flex items-center gap-4 hover:shadow-md transition-all cursor-pointer ${conv.is_escalated ? 'border-amber-300 bg-amber-50/10' : 'border-gray-100'}`} onClick={() => handleViewConversation(conv)}>
+                  <div className={`w-10 h-10 rounded-full flex items-center justify-center text-sm font-black ${conv.is_escalated ? 'bg-amber-100 text-amber-700' : 'bg-blue-100 text-blue-700'}`}>
                     {conv.contact_phone?.slice(-2) || '??'}
                   </div>
                   <div className="flex-1 min-w-0">
-                    <p className="text-sm font-bold text-gray-800">{conv.contact_phone || 'Unknown'}</p>
+                    <div className="flex items-center gap-2">
+                      <p className="text-sm font-bold text-gray-800">{conv.contact_phone || 'Unknown'}</p>
+                      {conv.is_escalated && (
+                        <span className="bg-amber-100 border border-amber-200 text-amber-800 font-bold px-2 py-0.5 rounded-full text-[9px] uppercase tracking-wider">⚠️ Escalated</span>
+                      )}
+                    </div>
                     <p className="text-xs text-gray-400 truncate mt-0.5">
                       {conv.last_message_role === 'assistant' ? '🤖 ' : '👤 '}
                       {conv.last_message || 'No messages'}
@@ -361,7 +374,15 @@ export const AgentDetailPage: React.FC = () => {
                   <h3 className="text-sm font-black text-gray-900">📱 {viewConv.contact_phone || 'Unknown'}</h3>
                   <p className="text-[10px] text-gray-400 mt-0.5">{(viewConv.messages || []).length} messages</p>
                 </div>
-                <div className="flex gap-2">
+                <div className="flex items-center gap-2">
+                  {viewConv.is_escalated && (
+                    <button
+                      onClick={() => handleResolveConversation(viewConv.id)}
+                      className="px-3 py-1 bg-green-600 hover:bg-green-700 text-white text-[10px] font-bold rounded-lg transition-colors"
+                    >
+                      Resolve & Resume AI
+                    </button>
+                  )}
                   <button
                     onClick={() => handleDeleteConversation(viewConv.id)}
                     className="px-3 py-1 text-[10px] font-bold text-red-500 hover:bg-red-50 rounded-lg transition-colors"
@@ -374,6 +395,12 @@ export const AgentDetailPage: React.FC = () => {
 
               {/* Messages */}
               <div className="flex-1 overflow-y-auto p-4 space-y-2 bg-[#0b141a]">
+                {viewConv.is_escalated && (
+                  <div className="bg-amber-950/40 border border-amber-900/30 text-amber-300 rounded-xl p-3 text-[11px] font-semibold flex items-center gap-2 mb-3">
+                    <span>⚠️</span>
+                    <span>AI auto-replies are paused. Support must answer manually or resolve escalation.</span>
+                  </div>
+                )}
                 {(viewConv.messages || []).map((msg, idx) => (
                   <div key={idx} className={`flex ${msg.role === 'user' ? 'justify-end' : 'justify-start'}`}>
                     <div className={`max-w-[80%] rounded-2xl px-3.5 py-2 text-[13px] ${

@@ -13,11 +13,13 @@ class AiConversation extends Model
         'user_id',
         'agent_id',
         'contact_phone',
+        'is_escalated',
         'messages',
     ];
 
     protected $casts = [
         'messages' => 'array',
+        'is_escalated' => 'boolean',
     ];
 
     public function user()

@@ -145,6 +145,16 @@ export const Sidebar: React.FC = () => {
               <span>📝</span>
               <span>Message Templates</span>
             </NavLink>
+
+            <NavLink
+              to="/quick-send"
+              className={({ isActive }) =>
+                `flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-semibold transition-all ${isActive ? 'bg-blue-600 text-white shadow-lg shadow-blue-900/30' : 'hover:bg-gray-800 hover:text-white'}`
+              }
+            >
+              <span>🚀</span>
+              <span>Quick Send</span>
+            </NavLink>
           </div>
 
           {/* Chatbot & AI Section Group */}

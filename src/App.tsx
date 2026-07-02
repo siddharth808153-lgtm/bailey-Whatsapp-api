@@ -20,6 +20,7 @@ import { SequenceBuilderPage } from './pages/drip/SequenceBuilderPage.js'
 import { EnrollmentsPage } from './pages/drip/EnrollmentsPage.js'
 import { WarmupPage } from './pages/warmup/WarmupPage.js'
 import { ConnectionsPage } from './pages/instances/ConnectionsPage.js'
+import { QuickSendPage } from './pages/campaigns/QuickSendPage.js'
 
 export const App: React.FC = () => {
   const token = localStorage.getItem('wasp_token')
@@ -62,6 +63,7 @@ export const App: React.FC = () => {
             <Route path="/campaigns/:id" element={<CampaignDetailPage />} />
             <Route path="/campaigns/:id/report" element={<CampaignReportPage />} />
             <Route path="/campaigns/templates" element={<MessageTemplatesPage />} />
+            <Route path="/quick-send" element={<QuickSendPage />} />
 
             {/* Chatbot routes */}
             <Route path="/chatbot" element={<ChatbotPage />} />

@@ -374,9 +374,9 @@ export const AiAgentsPage: React.FC = () => {
                   <label className="block text-xs font-bold text-gray-600 uppercase tracking-wide mb-2">AI Provider</label>
                   <div className="grid grid-cols-3 gap-3">
                     {([
-                      { value: 'openai', icon: '🟢', label: 'OpenAI', desc: 'GPT-3.5 Turbo' },
-                      { value: 'gemini', icon: '🔵', label: 'Gemini', desc: 'Gemini Pro' },
-                      { value: 'anthropic', icon: '🟠', label: 'Anthropic', desc: 'Claude Haiku' },
+                      { value: 'openai', icon: '🟢', label: 'OpenAI', desc: 'GPT-4o / 3.5' },
+                      { value: 'gemini', icon: '🔵', label: 'Gemini', desc: 'Gemini 1.5 Flash' },
+                      { value: 'anthropic', icon: '🟠', label: 'Anthropic', desc: 'Claude 3.5 Haiku' },
                     ] as const).map(opt => (
                       <button
                         key={opt.value}

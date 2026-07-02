@@ -23,7 +23,6 @@ class ProcessCampaignJob implements ShouldQueue
     public $campaign;
     public $timeout = 7200; // 2 hours
     public $tries = 1;
-    public $queue = 'campaigns';
 
     /**
      * Create a new job instance.
@@ -31,7 +30,7 @@ class ProcessCampaignJob implements ShouldQueue
     public function __construct(Campaign $campaign)
     {
         $this->campaign = $campaign;
-        $this->queue = 'campaigns';
+        $this->onQueue('campaigns');
     }
 
     /**

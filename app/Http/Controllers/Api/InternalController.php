@@ -6,9 +6,15 @@ namespace App\Http\Controllers\Api;
 use App\Http\Controllers\Controller;
 use App\Models\Campaign;
 use App\Models\CampaignMessage;
+use App\Models\ChatbotConversation;
+use App\Models\ChatbotFlow;
+use App\Models\ChatbotRule;
+use App\Models\Contact;
 use App\Models\MessageLog;
 use App\Models\WarmupSession;
 use App\Models\WhatsappInstance;
+use App\Services\AiChatbotService;
+use Carbon\Carbon;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Log;
 
@@ -146,7 +152,8 @@ class InternalController extends Controller
 
 
     /**
-     * Handle incoming chatbot message. Stubbed for now.
+     * Handle incoming chatbot message.
+     * Called by Node.js when a message arrives.
      */
     public function handleIncomingMessage(Request $request)
     {
@@ -160,15 +167,218 @@ class InternalController extends Controller
             'message_type' => 'required|string',
             'body' => 'nullable|string',
             'timestamp' => 'required',
+            'is_group' => 'nullable|boolean',
         ]);
 
-        // Chatbot logic is implemented in subsequent stages. Return empty reply for now.
+        // Ignore group messages
+        if ($request->boolean('is_group')) {
+            return response()->json(['success' => true, 'data' => ['reply' => null]]);
+        }
+
+        // Find the instance
+        $instance = WhatsappInstance::where('session_id', $request->session_id)->first();
+        if (!$instance) {
+            return response()->json(['success' => true, 'data' => ['reply' => null]]);
+        }
+
+        // Strip JID to phone number (remove @s.whatsapp.net)
+        $phone = preg_replace('/@s\.whatsapp\.net$/', '', $request->from);
+        $phone = preg_replace('/:.*/', '', $phone); // Remove device suffix
+
+        // Auto-create or find contact
+        $contact = Contact::firstOrCreate(
+            ['user_id' => $instance->user_id, 'phone' => $phone],
+            ['name' => $phone, 'source' => 'chatbot_auto']
+        );
+
+        // Skip opted-out contacts (DND)
+        if ($contact->opted_out) {
+            return response()->json(['success' => true, 'data' => ['reply' => null]]);
+        }
+
+        // Find active flow: instance-specific first, then global (instance_id = null)
+        $flow = ChatbotFlow::where('user_id', $instance->user_id)
+            ->where('is_active', true)
+            ->where(function ($q) use ($instance) {
+                $q->where('instance_id', $instance->id)
+                  ->orWhereNull('instance_id');
+            })
+            ->orderByRaw('instance_id IS NULL ASC') // instance-specific first
+            ->first();
+
+        if (!$flow) {
+            return response()->json(['success' => true, 'data' => ['reply' => null]]);
+        }
+
+        // Business hours check
+        if ($flow->business_hours_only) {
+            $now = Carbon::now();
+            $start = Carbon::parse($flow->business_hours_start);
+            $end = Carbon::parse($flow->business_hours_end);
+
+            if (!$now->between($start, $end)) {
+                if ($flow->away_message) {
+                    return response()->json([
+                        'success' => true,
+                        'data' => [
+                            'reply' => [
+                                'type' => 'text',
+                                'body' => $flow->away_message,
+                                'simulate_typing' => true,
+                                'typing_delay_seconds' => 2,
+                            ]
+                        ]
+                    ]);
+                }
+                return response()->json(['success' => true, 'data' => ['reply' => null]]);
+            }
+        }
+
+        // Get or create conversation state
+        $conversation = ChatbotConversation::firstOrCreate(
+            [
+                'instance_id' => $instance->id,
+                'contact_phone' => $phone,
+                'flow_id' => $flow->id,
+            ],
+            [
+                'state' => ['history' => []],
+                'is_active' => true,
+            ]
+        );
+
+        $conversation->update([
+            'last_message_at' => now(),
+            'is_active' => true,
+        ]);
+
+        $body = trim($request->input('body', ''));
+
+        // First message trigger — only for new conversations
+        if ($flow->trigger_type === 'first_message') {
+            $isFirstMessage = $conversation->wasRecentlyCreated;
+            if (!$isFirstMessage) {
+                // For AI-enabled flows, still process via AI on subsequent messages
+                if ($flow->use_ai) {
+                    return $this->handleAiReply($flow, $conversation, $body);
+                }
+                return response()->json(['success' => true, 'data' => ['reply' => null]]);
+            }
+        }
+
+        // Match rules by priority (highest first), skip default
+        $rules = $flow->chatbotRules()
+            ->where('is_default', false)
+            ->orderBy('priority', 'desc')
+            ->get();
+
+        $matchedRule = null;
+
+        foreach ($rules as $rule) {
+            if ($this->matchesRule($rule, $body)) {
+                $matchedRule = $rule;
+                break;
+            }
+        }
+
+        // Try default rule if no match
+        if (!$matchedRule) {
+            $matchedRule = $flow->chatbotRules()
+                ->where('is_default', true)
+                ->first();
+        }
+
+        // If no rule matched and AI is enabled, use AI
+        if (!$matchedRule && $flow->use_ai) {
+            return $this->handleAiReply($flow, $conversation, $body);
+        }
+
+        // If still no match, no reply
+        if (!$matchedRule) {
+            return response()->json(['success' => true, 'data' => ['reply' => null]]);
+        }
+
+        // Update conversation current rule
+        $conversation->update(['current_rule_id' => $matchedRule->id]);
+
+        // Handle flow redirect
+        if ($matchedRule->response_type === 'flow_redirect' && $matchedRule->next_flow_id) {
+            $nextFlow = ChatbotFlow::find($matchedRule->next_flow_id);
+            if ($nextFlow && $nextFlow->is_active) {
+                $conversation->update(['flow_id' => $nextFlow->id]);
+                // Return null — the next message will be handled by the new flow
+                return response()->json(['success' => true, 'data' => ['reply' => null]]);
+            }
+        }
+
+        // Build reply response
+        $reply = [
+            'type' => $matchedRule->response_type,
+            'body' => $matchedRule->response_body,
+            'simulate_typing' => (bool) $matchedRule->simulate_typing,
+            'typing_delay_seconds' => $matchedRule->typing_delay_seconds ?? 3,
+        ];
+
+        if ($matchedRule->response_media_url) {
+            $reply['media_url'] = $matchedRule->response_media_url;
+        }
+
         return response()->json([
             'success' => true,
-            'data' => [
-                'reply' => null
-            ]
+            'data' => ['reply' => $reply],
         ]);
+    }
+
+    /**
+     * Match incoming message body against a rule.
+     */
+    private function matchesRule(ChatbotRule $rule, string $body): bool
+    {
+        if (empty($body) || empty($rule->trigger_keyword)) {
+            return false;
+        }
+
+        $keyword = $rule->trigger_keyword;
+
+        return match ($rule->match_type) {
+            'exact' => mb_strtolower($body) === mb_strtolower($keyword),
+            'contains' => str_contains(mb_strtolower($body), mb_strtolower($keyword)),
+            'starts_with' => str_starts_with(mb_strtolower($body), mb_strtolower($keyword)),
+            'regex' => (bool) @preg_match('/' . $keyword . '/iu', $body),
+            default => false,
+        };
+    }
+
+    /**
+     * Handle AI-powered reply for a chatbot flow.
+     */
+    private function handleAiReply(
+        ChatbotFlow $flow,
+        ChatbotConversation $conversation,
+        string $body
+    ) {
+        $aiService = app(AiChatbotService::class);
+        $history = $aiService->buildHistory($conversation);
+
+        $aiReply = $aiService->getReply($flow, $body, $history);
+
+        if ($aiReply) {
+            $aiService->appendHistory($conversation, $body, $aiReply);
+
+            return response()->json([
+                'success' => true,
+                'data' => [
+                    'reply' => [
+                        'type' => 'text',
+                        'body' => $aiReply,
+                        'simulate_typing' => true,
+                        'typing_delay_seconds' => min(5, max(2, (int) (mb_strlen($aiReply) / 50))),
+                    ]
+                ],
+            ]);
+        }
+
+        return response()->json(['success' => true, 'data' => ['reply' => null]]);
     }
 
     /**

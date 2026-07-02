@@ -134,3 +134,55 @@ export interface CampaignReport {
   messages: CampaignMessage[]
   hourly_breakdown: { hour: string; sent: number; failed: number }[]
 }
+
+export interface ChatbotFlow {
+  id: number
+  user_id: number
+  instance_id?: number
+  name: string
+  is_active: boolean
+  trigger_type: 'keyword' | 'any_message' | 'first_message'
+  business_hours_only: boolean
+  business_hours_start?: string
+  business_hours_end?: string
+  away_message?: string
+  use_ai: boolean
+  ai_provider?: 'openai' | 'gemini' | 'anthropic'
+  ai_system_prompt?: string
+  whatsapp_instance?: WhatsappInstance
+  chatbot_rules?: ChatbotRule[]
+  chatbot_rules_count?: number
+  active_conversations_count?: number
+  recent_conversations?: ChatbotConversation[]
+  created_at: string
+  updated_at?: string
+}
+
+export interface ChatbotRule {
+  id: number
+  flow_id: number
+  trigger_keyword?: string
+  match_type: 'exact' | 'contains' | 'starts_with' | 'regex'
+  is_default: boolean
+  response_type: 'text' | 'image' | 'video' | 'document' | 'audio' | 'flow_redirect'
+  response_body?: string
+  response_media_url?: string
+  next_flow_id?: number
+  simulate_typing: boolean
+  typing_delay_seconds: number
+  priority: number
+  created_at?: string
+}
+
+export interface ChatbotConversation {
+  id: number
+  instance_id: number
+  contact_phone: string
+  flow_id: number
+  current_rule_id?: number
+  state: { history?: { role: string; content: string }[] }
+  last_message_at?: string
+  is_active: boolean
+  chatbot_flow?: ChatbotFlow
+  created_at?: string
+}

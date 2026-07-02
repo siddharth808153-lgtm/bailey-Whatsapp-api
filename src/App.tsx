@@ -10,6 +10,9 @@ import { CreateCampaignPage } from './pages/campaigns/CreateCampaignPage.js'
 import { CampaignDetailPage } from './pages/campaigns/CampaignDetailPage.js'
 import { CampaignReportPage } from './pages/campaigns/CampaignReportPage.js'
 import { MessageTemplatesPage } from './pages/campaigns/MessageTemplatesPage.js'
+import { ChatbotPage } from './pages/chatbot/ChatbotPage.js'
+import { FlowBuilderPage } from './pages/chatbot/FlowBuilderPage.js'
+import { ConversationsPage } from './pages/chatbot/ConversationsPage.js'
 
 // Simple placeholder page for connection instances
 const InstancesPagePlaceholder: React.FC = () => (
@@ -45,6 +48,11 @@ export const App: React.FC = () => {
             <Route path="/campaigns/:id" element={<CampaignDetailPage />} />
             <Route path="/campaigns/:id/report" element={<CampaignReportPage />} />
             <Route path="/campaigns/templates" element={<MessageTemplatesPage />} />
+
+            {/* Chatbot routes */}
+            <Route path="/chatbot" element={<ChatbotPage />} />
+            <Route path="/chatbot/flows/:id" element={<FlowBuilderPage />} />
+            <Route path="/chatbot/conversations" element={<ConversationsPage />} />
 
             {/* Fallback redirect */}
             <Route path="*" element={<Navigate to="/contacts" replace />} />

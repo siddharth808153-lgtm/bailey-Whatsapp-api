@@ -233,12 +233,23 @@ export const BaileysManager = {
             // If Laravel returns a reply, send it
             if (response?.data?.reply) {
               const { reply } = response.data
-              await this.sendMessage(
-                sessionId,
-                messageData.from,
-                reply.type || 'text',
-                reply
-              )
+
+              if (reply.simulate_typing) {
+                await this.sendWithTyping(
+                  sessionId,
+                  messageData.from,
+                  reply.type || 'text',
+                  reply,
+                  reply.typing_delay_seconds || 3
+                )
+              } else {
+                await this.sendMessage(
+                  sessionId,
+                  messageData.from,
+                  reply.type || 'text',
+                  reply
+                )
+              }
             }
 
           } catch (err) {
@@ -356,6 +367,65 @@ export const BaileysManager = {
       ) || false,
       created_at: group.creation
     }))
+  },
+
+  /**
+   * Send message with typing simulation (composing indicator)
+   */
+  async sendWithTyping(sessionId, phone, type, data, delaySeconds = 3) {
+    const inst = instances.get(sessionId)
+    if (!inst || inst.status !== STATUS.CONNECTED) {
+      throw new Error(
+        `Instance ${sessionId} not connected. Status: ${inst?.status}`
+      )
+    }
+
+    const log = instanceLogger(sessionId)
+    const jid = toJID(phone)
+
+    return MessageQueue.enqueue(sessionId, async () => {
+      try {
+        // Show "composing" presence to the user
+        await inst.socket.sendPresenceUpdate('composing', jid)
+
+        // Wait for the specified delay to simulate typing
+        const delay = Math.min(delaySeconds, 10) * 1000
+        await new Promise(r => setTimeout(r, delay))
+
+        // Stop composing
+        await inst.socket.sendPresenceUpdate('paused', jid)
+
+        // Build and send the message
+        const content = buildMessageContent(type, data)
+        await inst.socket.sendMessage(jid, content)
+
+        log.debug(`Sent message with typing to ${phone} (delay: ${delaySeconds}s)`)
+
+        // Log to Laravel
+        await LaravelCallback.logMessage({
+          session_id: sessionId,
+          to_phone: phone,
+          message_type: type,
+          message_body: data.body || null,
+          status: 'sent',
+          source_type: 'chatbot',
+          source_id: null
+        })
+
+        return { success: true, phone, jid, typing: true }
+      } catch (err) {
+        await LaravelCallback.logMessage({
+          session_id: sessionId,
+          to_phone: phone,
+          message_type: type,
+          status: 'failed',
+          error_message: err.message,
+          source_type: 'chatbot',
+          source_id: null
+        })
+        throw err
+      }
+    })
   },
 
   /**

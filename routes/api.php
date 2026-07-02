@@ -3,6 +3,8 @@
 use App\Http\Controllers\Api\AuthController;
 use App\Http\Controllers\Api\BillingController;
 use App\Http\Controllers\Api\CampaignController;
+use App\Http\Controllers\Api\ChatbotFlowController;
+use App\Http\Controllers\Api\ChatbotRuleController;
 use App\Http\Controllers\Api\ContactController;
 use App\Http\Controllers\Api\ContactListController;
 use App\Http\Controllers\Api\InstanceController;
@@ -173,7 +175,22 @@ Route::middleware(['auth:sanctum', 'track.login'])->group(function () {
 
         // Part 6 — Chatbot & AI
         Route::prefix('chatbot')->group(function () {
-            // Placeholder: Chatbot flows, rules, AI config
+            // Chatbot Flows
+            Route::get('/flows', [ChatbotFlowController::class, 'index']);
+            Route::post('/flows', [ChatbotFlowController::class, 'store']);
+            Route::get('/flows/{id}', [ChatbotFlowController::class, 'show']);
+            Route::put('/flows/{id}', [ChatbotFlowController::class, 'update']);
+            Route::delete('/flows/{id}', [ChatbotFlowController::class, 'destroy']);
+            Route::post('/flows/{id}/toggle', [ChatbotFlowController::class, 'toggle']);
+            Route::post('/flows/{id}/clear-conversations', [ChatbotFlowController::class, 'clearConversations']);
+            Route::get('/flows/{id}/conversations', [ChatbotFlowController::class, 'conversations']);
+
+            // Chatbot Rules (nested under flow)
+            Route::get('/flows/{flowId}/rules', [ChatbotRuleController::class, 'index']);
+            Route::post('/flows/{flowId}/rules', [ChatbotRuleController::class, 'store']);
+            Route::put('/flows/{flowId}/rules/{ruleId}', [ChatbotRuleController::class, 'update']);
+            Route::delete('/flows/{flowId}/rules/{ruleId}', [ChatbotRuleController::class, 'destroy']);
+            Route::post('/flows/{flowId}/rules/reorder', [ChatbotRuleController::class, 'reorder']);
         });
 
         // Part 7 — Drip Sequences & Warmer

@@ -68,3 +68,14 @@ export const TEMPLATES = {
   DELETE: (id: number) => `/templates/${id}`,
   USE: (id: number) => `/templates/${id}/use`,
 }
+
+export const CHATBOT = {
+  FLOWS: '/chatbot/flows',
+  FLOW_DETAIL: (id: number) => `/chatbot/flows/${id}`,
+  FLOW_TOGGLE: (id: number) => `/chatbot/flows/${id}/toggle`,
+  FLOW_CLEAR_CONVERSATIONS: (id: number) => `/chatbot/flows/${id}/clear-conversations`,
+  FLOW_CONVERSATIONS: (id: number) => `/chatbot/flows/${id}/conversations`,
+  RULES: (flowId: number) => `/chatbot/flows/${flowId}/rules`,
+  RULE_DETAIL: (flowId: number, ruleId: number) => `/chatbot/flows/${flowId}/rules/${ruleId}`,
+  RULES_REORDER: (flowId: number) => `/chatbot/flows/${flowId}/rules/reorder`,
+}

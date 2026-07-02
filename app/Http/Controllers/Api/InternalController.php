@@ -188,9 +188,13 @@ class InternalController extends Controller
             return response()->json(['success' => true, 'data' => ['reply' => null]]);
         }
 
-        // Strip JID to phone number (remove @s.whatsapp.net)
-        $phone = preg_replace('/@s\.whatsapp\.net$/', '', $request->from);
+        // Strip JID completely to phone number (remove @s.whatsapp.net, @lid, @g.us etc)
+        $phone = preg_replace('/@.*$/', '', $request->from);
         $phone = preg_replace('/:.*/', '', $phone); // Remove device suffix
+
+        // Ensure message_type is one of the allowed enum values in message_logs
+        $allowedTypes = ['text', 'image', 'video', 'document', 'audio', 'sticker', 'location'];
+        $messageType = in_array($request->message_type, $allowedTypes) ? $request->message_type : 'text';
 
         // Log incoming message to message_logs
         MessageLog::create([
@@ -199,7 +203,7 @@ class InternalController extends Controller
             'message_id' => $request->message_id,
             'source_type' => 'chatbot',
             'to_phone' => $phone,
-            'message_type' => $request->message_type,
+            'message_type' => $messageType,
             'message_body' => $request->body,
             'media_url' => $request->media_url,
             'status' => 'read',

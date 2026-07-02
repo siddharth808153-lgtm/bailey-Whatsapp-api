@@ -263,7 +263,7 @@ export const BaileysManager = {
               }
             }
 
-            log.debug(`Incoming message from ${messageData.from}`)
+            log.info(`Incoming message from ${messageData.from}`)
 
             // Send to Laravel for chatbot processing
             const response = await LaravelCallback.handleIncomingMessage(

@@ -221,6 +221,60 @@ class InternalController extends Controller
             return response()->json(['success' => true, 'data' => ['reply' => null]]);
         }
 
+        // 1. Check if there is an active standalone AI Agent for this user/instance
+        $agent = \App\Models\AiAgent::where('user_id', $instance->user_id)
+            ->where('is_active', true)
+            ->first();
+
+        $body = trim($request->input('body', ''));
+
+        if ($agent) {
+            // Check if conversation is escalated to human
+            $aiConv = \App\Models\AiConversation::firstOrCreate(
+                [
+                    'user_id' => $instance->user_id,
+                    'agent_id' => $agent->id,
+                    'contact_phone' => $phone,
+                ],
+                ['messages' => []]
+            );
+
+            if ($aiConv->is_escalated) {
+                return response()->json(['success' => true, 'data' => ['reply' => null]]);
+            }
+
+            // Get reply from AI Agent using the conversations table history
+            $aiService = app(\App\Services\AiChatbotService::class);
+            $user = $instance->user;
+
+            if ($user && $user->ai_provider && $user->ai_api_key) {
+                $aiReply = $aiService->getAgentReply($agent, $user, $body, $aiConv->messages ?? [], $phone);
+
+                if ($aiReply) {
+                    // Update AI conversation log history
+                    $messages = $aiConv->messages ?? [];
+                    $messages[] = ['role' => 'user', 'content' => $body, 'timestamp' => now()->toIso8601String()];
+                    $messages[] = ['role' => 'assistant', 'content' => $aiReply, 'timestamp' => now()->toIso8601String()];
+                    if (count($messages) > 50) {
+                        $messages = array_slice($messages, -50);
+                    }
+                    $aiConv->update(['messages' => $messages]);
+
+                    return response()->json([
+                        'success' => true,
+                        'data' => [
+                            'reply' => [
+                                'type' => 'text',
+                                'body' => $aiReply,
+                                'simulate_typing' => true,
+                                'typing_delay_seconds' => min(5, max(2, (int) (mb_strlen($aiReply) / 50))),
+                            ]
+                        ],
+                    ]);
+                }
+            }
+        }
+
         // Find active flow: instance-specific first, then global (instance_id = null)
         $flow = ChatbotFlow::where('user_id', $instance->user_id)
             ->where('is_active', true)

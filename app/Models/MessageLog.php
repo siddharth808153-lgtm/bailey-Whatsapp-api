@@ -13,6 +13,7 @@ class MessageLog extends Model
     protected $fillable = [
         'user_id',
         'instance_id',
+        'message_id',
         'source_type',
         'source_id',
         'to_phone',

@@ -97,5 +97,21 @@ export const LaravelCallback = {
     } catch (err) {
       logger.error(`Failed to report banned instance: ${err.message}`)
     }
+  },
+
+  /**
+   * Update message delivery/read status in Laravel DB
+   */
+  async updateMessageStatus(sessionId, messageId, status, timestamp = null) {
+    try {
+      await http.post('/message/receipt', {
+        session_id: sessionId,
+        message_id: messageId,
+        status,
+        timestamp
+      })
+    } catch (err) {
+      logger.error(`Failed to update message status: ${err.message}`)
+    }
   }
 }

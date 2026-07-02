@@ -7,4 +7,5 @@ router.post('/send-group', ctrl.sendGroup)
 router.post('/send-campaign-bulk', ctrl.sendCampaignBulk)
 router.post('/campaign/pause', ctrl.pauseCampaign)
 router.post('/campaign/cancel', ctrl.cancelCampaign)
+router.post('/presence', ctrl.sendPresence)
 export default router

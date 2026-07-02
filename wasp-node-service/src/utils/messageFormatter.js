@@ -2,6 +2,7 @@ import { toJID, toGroupJID } from './phoneFormatter.js'
 
 /**
  * Build Baileys message content from type + data
+ * Converts legacy buttons and lists to modern Interactive Native Flow format.
  */
 export function buildMessageContent(type, data) {
   switch (type) {
@@ -61,25 +62,85 @@ export function buildMessageContent(type, data) {
         }
       }
 
-    case 'buttons':
+    case 'sticker':
       return {
-        text: applyPersonalization(data.body, data.variables || {}),
-        footer: data.footer || '',
-        buttons: (data.buttons || []).map((btn, i) => ({
-          buttonId: `btn_${i}`,
-          buttonText: { displayText: btn.text },
-          type: 1
-        })),
-        headerType: 1
+        sticker: { url: data.media_url }
+      }
+
+    case 'buttons':
+      // Modern interactive native flow buttons
+      return {
+        viewOnceMessage: {
+          message: {
+            interactiveMessage: {
+              body: { text: applyPersonalization(data.body, data.variables || {}) },
+              footer: { text: data.footer || '' },
+              header: data.title ? { title: data.title, hasMediaAttachment: false } : undefined,
+              nativeFlowMessage: {
+                buttons: (data.buttons || []).map((btn) => {
+                  if (btn.type === 'url') {
+                    return {
+                      name: "cta_url",
+                      buttonParamsJson: JSON.stringify({
+                        display_text: btn.text,
+                        url: btn.url,
+                        merchant_url: btn.url
+                      })
+                    }
+                  } else if (btn.type === 'call') {
+                    return {
+                      name: "cta_call",
+                      buttonParamsJson: JSON.stringify({
+                        display_text: btn.text,
+                        phone_number: btn.phone
+                      })
+                    }
+                  } else {
+                    return {
+                      name: "quick_reply",
+                      buttonParamsJson: JSON.stringify({
+                        display_text: btn.text,
+                        id: btn.id || btn.buttonId || `btn_${Math.random().toString(36).substr(2, 9)}`
+                      })
+                    }
+                  }
+                })
+              }
+            }
+          }
+        }
       }
 
     case 'list':
+      // Modern interactive single select list
       return {
-        text: applyPersonalization(data.body, data.variables || {}),
-        footer: data.footer || '',
-        title: data.title || '',
-        buttonText: data.button_text || 'Select Option',
-        sections: data.sections || []
+        viewOnceMessage: {
+          message: {
+            interactiveMessage: {
+              body: { text: applyPersonalization(data.body, data.variables || {}) },
+              footer: { text: data.footer || '' },
+              header: data.title ? { title: data.title, hasMediaAttachment: false } : undefined,
+              nativeFlowMessage: {
+                buttons: [
+                  {
+                    name: "single_select",
+                    buttonParamsJson: JSON.stringify({
+                      title: data.button_text || "Select Option",
+                      sections: (data.sections || []).map(sec => ({
+                        title: sec.title || "",
+                        rows: (sec.rows || []).map(row => ({
+                          title: row.title,
+                          id: row.id || row.rowId || `row_${Math.random().toString(36).substr(2, 9)}`,
+                          description: row.description || ""
+                        }))
+                      }))
+                    })
+                  }
+                ]
+              }
+            }
+          }
+        }
       }
 
     default:

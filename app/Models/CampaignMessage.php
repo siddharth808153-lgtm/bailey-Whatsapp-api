@@ -14,6 +14,7 @@ class CampaignMessage extends Model
         'campaign_id',
         'contact_id',
         'instance_id',
+        'message_id',
         'phone',
         'status',
         'error_message',

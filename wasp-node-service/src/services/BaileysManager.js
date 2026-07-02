@@ -6,13 +6,17 @@ import makeWASocket, {
   isJidBroadcast,
   isJidGroup,
   proto,
-  getContentType
+  getContentType,
+  downloadMediaMessage
 } from '@whiskeysockets/baileys'
 import { Boom } from '@hapi/boom'
 import path from 'path'
 import fs from 'fs'
 import QRCode from 'qrcode'
 import { v4 as uuidv4 } from 'uuid'
+import mime from 'mime-types'
+import sharp from 'sharp'
+import axios from 'axios'
 import config from '../config.js'
 import { logger, instanceLogger } from '../utils/logger.js'
 import { LaravelCallback } from './LaravelCallback.js'
@@ -223,6 +227,41 @@ export const BaileysManager = {
             const messageData = parseIncomingMessage(msg)
             if (!messageData) continue
 
+            // If message has media, download it
+            const messageType = getContentType(msg.message)
+            const mediaTypes = ['imageMessage', 'videoMessage', 'documentMessage', 'audioMessage', 'stickerMessage']
+            if (mediaTypes.includes(messageType)) {
+              try {
+                const buffer = await downloadMediaMessage(
+                  msg,
+                  'buffer',
+                  {},
+                  { 
+                    logger: logger.child({ level: 'silent' }),
+                    rekeydb: false
+                  }
+                )
+                
+                // Determine file extension
+                const mimeType = msg.message[messageType]?.mimetype || ''
+                const ext = mime.extension(mimeType) || getExtensionFromType(messageType)
+                const filename = `${uuidv4()}.${ext}`
+                const storageDir = path.join(process.cwd(), '../storage/app/public/media')
+                if (!fs.existsSync(storageDir)) {
+                  fs.mkdirSync(storageDir, { recursive: true })
+                }
+                const filepath = path.join(storageDir, filename)
+                fs.writeFileSync(filepath, buffer)
+                
+                // Add media metadata
+                messageData.media_url = `/storage/media/${filename}`
+                messageData.media_filename = msg.message[messageType]?.fileName || filename
+                messageData.mimetype = mimeType
+              } catch (mediaErr) {
+                log.error('Failed to download incoming media:', mediaErr)
+              }
+            }
+
             log.debug(`Incoming message from ${messageData.from}`)
 
             // Send to Laravel for chatbot processing
@@ -254,6 +293,21 @@ export const BaileysManager = {
 
           } catch (err) {
             log.error('Error processing incoming message:', err)
+          }
+        }
+      })
+
+      // ── MESSAGE RECEIPTS (DELIVERED / READ STATUS) ──
+      sock.ev.on('message-receipt.update', async (receipts) => {
+        for (const receipt of receipts) {
+          try {
+            const keyId = receipt.key.id
+            const status = receipt.receipt.type === 'read' ? 'read' : 'delivered'
+            const timestamp = receipt.receipt.readTimestamp || receipt.receipt.timestamp || null
+            
+            await LaravelCallback.updateMessageStatus(sessionId, keyId, status, timestamp)
+          } catch (err) {
+            log.error('Error processing message receipt:', err)
           }
         }
       })
@@ -292,12 +346,30 @@ export const BaileysManager = {
     }
 
     const jid = toJID(phone)
-    const content = buildMessageContent(type, data)
+    let content = buildMessageContent(type, data)
 
     // Add to queue (enforces delay between messages)
     return MessageQueue.enqueue(sessionId, async () => {
       try {
-        await inst.socket.sendMessage(jid, content)
+        const log = instanceLogger(sessionId)
+        if (type === 'sticker' && data.media_url) {
+          try {
+            if (!data.media_url.toLowerCase().endsWith('.webp')) {
+              const response = await axios.get(data.media_url, { responseType: 'arraybuffer' })
+              const buffer = Buffer.from(response.data, 'binary')
+              const webpBuffer = await sharp(buffer)
+                .resize(512, 512, { fit: 'contain', background: { r: 0, g: 0, b: 0, alpha: 0 } })
+                .webp()
+                .toBuffer()
+              content = { sticker: webpBuffer }
+            }
+          } catch (convErr) {
+            log.error('Failed to convert image to sticker:', convErr)
+          }
+        }
+
+        const sentMsg = await inst.socket.sendMessage(jid, content)
+        const messageId = sentMsg?.key?.id || null
         
         // Log to Laravel
         await LaravelCallback.logMessage({
@@ -306,11 +378,12 @@ export const BaileysManager = {
           message_type: type,
           message_body: data.body || null,
           status: 'sent',
+          message_id: messageId,
           source_type: data.source_type || 'manual',
           source_id: data.source_id || null
         })
 
-        return { success: true, phone, jid }
+        return { success: true, phone, jid, message_id: messageId }
       } catch (err) {
         await LaravelCallback.logMessage({
           session_id: sessionId,
@@ -341,8 +414,9 @@ export const BaileysManager = {
     const content = buildMessageContent(type, data)
 
     return MessageQueue.enqueue(sessionId, async () => {
-      await inst.socket.sendMessage(jid, content)
-      return { success: true, groupId, jid }
+      const sentMsg = await inst.socket.sendMessage(jid, content)
+      const messageId = sentMsg?.key?.id || null
+      return { success: true, groupId, jid, message_id: messageId }
     })
   },
 
@@ -397,7 +471,8 @@ export const BaileysManager = {
 
         // Build and send the message
         const content = buildMessageContent(type, data)
-        await inst.socket.sendMessage(jid, content)
+        const sentMsg = await inst.socket.sendMessage(jid, content)
+        const messageId = sentMsg?.key?.id || null
 
         log.debug(`Sent message with typing to ${phone} (delay: ${delaySeconds}s)`)
 
@@ -408,11 +483,12 @@ export const BaileysManager = {
           message_type: type,
           message_body: data.body || null,
           status: 'sent',
+          message_id: messageId,
           source_type: 'chatbot',
           source_id: null
         })
 
-        return { success: true, phone, jid, typing: true }
+        return { success: true, phone, jid, typing: true, message_id: messageId }
       } catch (err) {
         await LaravelCallback.logMessage({
           session_id: sessionId,
@@ -614,6 +690,144 @@ export const BaileysManager = {
 
   getQueueStats() {
     return MessageQueue.getAllStats()
+  },
+
+  /**
+   * Create a new group
+   */
+  async createGroup(sessionId, title, participants) {
+    const inst = instances.get(sessionId)
+    if (!inst || inst.status !== STATUS.CONNECTED) {
+      throw new Error(`Instance ${sessionId} not connected`)
+    }
+    const formattedParticipants = participants.map(p => toJID(p))
+    const groupMetadata = await inst.socket.groupCreate(title, formattedParticipants)
+    return {
+      id: groupMetadata.id,
+      subject: groupMetadata.subject,
+      participants: groupMetadata.participants
+    }
+  },
+
+  /**
+   * Update group participants (add, remove, promote, demote)
+   */
+  async updateGroupParticipants(sessionId, groupId, participants, action) {
+    const inst = instances.get(sessionId)
+    if (!inst || inst.status !== STATUS.CONNECTED) {
+      throw new Error(`Instance ${sessionId} not connected`)
+    }
+    const formattedParticipants = participants.map(p => toJID(p))
+    const groupJid = groupId.includes('@g.us') ? groupId : `${groupId}@g.us`
+    const response = await inst.socket.groupParticipantsUpdate(groupJid, formattedParticipants, action)
+    return response
+  },
+
+  /**
+   * Get invite code for a group
+   */
+  async getGroupInviteCode(sessionId, groupId) {
+    const inst = instances.get(sessionId)
+    if (!inst || inst.status !== STATUS.CONNECTED) {
+      throw new Error(`Instance ${sessionId} not connected`)
+    }
+    const groupJid = groupId.includes('@g.us') ? groupId : `${groupId}@g.us`
+    const code = await inst.socket.groupInviteCode(groupJid)
+    return {
+      code,
+      invite_url: `https://chat.whatsapp.com/${code}`
+    }
+  },
+
+  /**
+   * Revoke invite code for a group
+   */
+  async revokeGroupInvite(sessionId, groupId) {
+    const inst = instances.get(sessionId)
+    if (!inst || inst.status !== STATUS.CONNECTED) {
+      throw new Error(`Instance ${sessionId} not connected`)
+    }
+    const groupJid = groupId.includes('@g.us') ? groupId : `${groupId}@g.us`
+    const code = await inst.socket.groupRevokeInvite(groupJid)
+    return { success: true, new_code: code }
+  },
+
+  /**
+   * Update group settings (locked, announcement)
+   */
+  async updateGroupSetting(sessionId, groupId, setting) {
+    const inst = instances.get(sessionId)
+    if (!inst || inst.status !== STATUS.CONNECTED) {
+      throw new Error(`Instance ${sessionId} not connected`)
+    }
+    const groupJid = groupId.includes('@g.us') ? groupId : `${groupId}@g.us`
+    await inst.socket.groupSettingUpdate(groupJid, setting)
+    return { success: true }
+  },
+
+  /**
+   * Leave a group
+   */
+  async leaveGroup(sessionId, groupId) {
+    const inst = instances.get(sessionId)
+    if (!inst || inst.status !== STATUS.CONNECTED) {
+      throw new Error(`Instance ${sessionId} not connected`)
+    }
+    const groupJid = groupId.includes('@g.us') ? groupId : `${groupId}@g.us`
+    await inst.socket.groupLeave(groupJid)
+    return { success: true }
+  },
+
+  /**
+   * Update presence status (composing, recording, paused)
+   */
+  async sendPresenceUpdate(sessionId, jid, presence) {
+    const inst = instances.get(sessionId)
+    if (!inst || inst.status !== STATUS.CONNECTED) {
+      throw new Error(`Instance ${sessionId} not connected`)
+    }
+    await inst.socket.sendPresenceUpdate(presence, jid)
+    return { success: true }
+  },
+
+  /**
+   * Get complete profile details for a contact
+   */
+  async getContactProfile(sessionId, phone) {
+    const inst = instances.get(sessionId)
+    if (!inst || inst.status !== STATUS.CONNECTED) {
+      throw new Error(`Instance ${sessionId} not connected`)
+    }
+
+    const jid = toJID(phone)
+    try {
+      const onWa = await inst.socket.onWhatsApp(jid)
+      const exists = onWa?.[0]?.exists || false
+      
+      let pictureUrl = null
+      let status = null
+
+      if (exists) {
+        try {
+          pictureUrl = await inst.socket.profilePictureUrl(jid, 'image')
+        } catch { /* ignore */ }
+
+        try {
+          const statusResult = await inst.socket.fetchStatus(jid)
+          status = statusResult?.status || null
+        } catch { /* ignore */ }
+      }
+
+      return {
+        phone,
+        exists,
+        jid: exists ? onWa[0].jid : null,
+        picture_url: pictureUrl,
+        status: status
+      }
+    } catch (err) {
+      return { phone, exists: false, jid: null, picture_url: null, status: null }
+    }
   }
 }
 
@@ -682,4 +896,14 @@ function mapMessageType(baileysType) {
     interactiveResponseMessage: 'interactive_reply'
   }
   return map[baileysType] || 'unknown'
+}
+
+function getExtensionFromType(messageType) {
+  return {
+    imageMessage: 'jpg',
+    videoMessage: 'mp4',
+    documentMessage: 'pdf',
+    audioMessage: 'ogg',
+    stickerMessage: 'webp'
+  }[messageType] || 'bin'
 }

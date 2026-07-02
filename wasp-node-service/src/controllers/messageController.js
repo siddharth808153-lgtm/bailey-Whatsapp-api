@@ -290,3 +290,21 @@ export async function cancelCampaign(req, res) {
   }
   res.json({ success: true, message: 'Campaign cancelled' })
 }
+
+export async function sendPresence(req, res) {
+  try {
+    const { session_id, phone, presence } = req.body
+    if (!session_id || !phone || !presence) {
+      return res.status(400).json({
+        success: false,
+        message: 'session_id, phone, and presence (composing|recording|paused) are required'
+      })
+    }
+    const { toJID } = await import('../utils/phoneFormatter.js')
+    const jid = toJID(phone)
+    const result = await BaileysManager.sendPresenceUpdate(session_id, jid, presence)
+    res.json(result)
+  } catch (err) {
+    res.status(500).json({ success: false, message: err.message })
+  }
+}

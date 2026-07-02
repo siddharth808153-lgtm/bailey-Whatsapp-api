@@ -22,6 +22,7 @@ use App\Http\Controllers\Api\AiAgentController;
 use App\Http\Controllers\Api\AiConfigController;
 use App\Http\Controllers\Api\AiKnowledgeController;
 use App\Http\Controllers\Api\AiConversationController;
+use App\Http\Controllers\Api\GroupController;
 use Illuminate\Support\Facades\Route;
 
 /*
@@ -52,6 +53,7 @@ Route::prefix('internal')->group(function () {
     Route::post('/campaign/message-status', [InternalController::class, 'updateCampaignMessageStatus']);
     Route::post('/campaign/paused', [InternalController::class, 'campaignPaused']);
     Route::post('/chatbot/incoming', [InternalController::class, 'handleIncomingMessage']);
+    Route::post('/message/receipt', [InternalController::class, 'updateMessageReceipt']);
     Route::post('/warmup/progress', [InternalController::class, 'updateWarmupProgress']);
     Route::post('/contact/validity', [InternalController::class, 'updateContactValidity']);
 });
@@ -158,6 +160,18 @@ Route::middleware(['auth:sanctum', 'track.login'])->group(function () {
         Route::prefix('tags')->group(function () {
             Route::get('/', [TagController::class, 'index']);
             Route::post('/bulk-tag', [TagController::class, 'bulkTag']);
+        });
+
+        // WhatsApp Groups
+        Route::prefix('groups')->group(function () {
+            Route::get('/', [GroupController::class, 'index']);
+            Route::post('/', [GroupController::class, 'store']);
+            Route::get('/{groupId}/participants', [GroupController::class, 'participants']);
+            Route::post('/{groupId}/participants', [GroupController::class, 'updateParticipants']);
+            Route::get('/{groupId}/invite', [GroupController::class, 'inviteCode']);
+            Route::post('/{groupId}/invite/revoke', [GroupController::class, 'revokeInviteCode']);
+            Route::post('/{groupId}/settings', [GroupController::class, 'updateSetting']);
+            Route::post('/{groupId}/leave', [GroupController::class, 'leaveGroup']);
         });
 
         // Part 5 — Campaigns & Messaging

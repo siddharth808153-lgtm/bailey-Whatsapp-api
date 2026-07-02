@@ -112,6 +112,7 @@ class InternalController extends Controller
             'message_body' => 'nullable|string',
             'media_url' => 'nullable|string',
             'status' => 'required|string',
+            'message_id' => 'nullable|string',
             'error_message' => 'nullable|string',
             'source_type' => 'required|string',
             'source_id' => 'nullable|integer',
@@ -128,6 +129,7 @@ class InternalController extends Controller
         $log = MessageLog::create([
             'user_id' => $instance->user_id,
             'instance_id' => $instance->id,
+            'message_id' => $request->message_id,
             'source_type' => $request->source_type,
             'source_id' => $request->source_id,
             'to_phone' => $request->to_phone,
@@ -168,6 +170,10 @@ class InternalController extends Controller
             'message_type' => 'required|string',
             'body' => 'nullable|string',
             'timestamp' => 'required',
+            'message_id' => 'nullable|string',
+            'media_url' => 'nullable|string',
+            'media_filename' => 'nullable|string',
+            'mimetype' => 'nullable|string',
             'is_group' => 'nullable|boolean',
         ]);
 
@@ -185,6 +191,20 @@ class InternalController extends Controller
         // Strip JID to phone number (remove @s.whatsapp.net)
         $phone = preg_replace('/@s\.whatsapp\.net$/', '', $request->from);
         $phone = preg_replace('/:.*/', '', $phone); // Remove device suffix
+
+        // Log incoming message to message_logs
+        MessageLog::create([
+            'user_id' => $instance->user_id,
+            'instance_id' => $instance->id,
+            'message_id' => $request->message_id,
+            'source_type' => 'chatbot',
+            'to_phone' => $phone,
+            'message_type' => $request->message_type,
+            'message_body' => $request->body,
+            'media_url' => $request->media_url,
+            'status' => 'read',
+            'sent_at' => $request->filled('timestamp') ? Carbon::createFromTimestamp($request->timestamp) : now(),
+        ]);
 
         // Auto-create or find contact
         $contact = Contact::firstOrCreate(
@@ -506,6 +526,7 @@ class InternalController extends Controller
         $request->validate([
             'campaign_message_id' => 'required|integer',
             'status' => 'required|string|in:sent,delivered,failed,skipped',
+            'message_id' => 'nullable|string',
             'error_message' => 'nullable|string',
             'sent_at' => 'nullable',
         ]);
@@ -518,6 +539,10 @@ class InternalController extends Controller
         $oldStatus = $msg->status;
 
         $msg->status = $request->status;
+        $msg->error_message = $request->error_message;
+        if ($request->filled('message_id')) {
+            $msg->message_id = $request->message_id;
+        }
         $msg->error_message = $request->error_message;
         if ($request->filled('sent_at')) {
             $msg->sent_at = $request->sent_at;
@@ -579,6 +604,61 @@ class InternalController extends Controller
             $campaign->update([
                 'status' => 'paused',
             ]);
+        }
+
+        return response()->json(['success' => true]);
+    }
+
+    /**
+     * Update message status receipt callbacks from Node.js (delivered, read).
+     */
+    public function updateMessageReceipt(Request $request)
+    {
+        if (!$this->verifySecret($request)) {
+            return response()->json(['success' => false, 'message' => 'Unauthorized'], 401);
+        }
+
+        $request->validate([
+            'message_id' => 'required|string',
+            'status' => 'required|string|in:delivered,read',
+            'timestamp' => 'nullable',
+        ]);
+
+        $status = $request->status;
+        $timestamp = $request->filled('timestamp')
+            ? Carbon::createFromTimestampMs($request->timestamp)
+            : now();
+
+        // 1. Update MessageLog
+        $log = MessageLog::where('message_id', $request->message_id)->first();
+        if ($log) {
+            $log->status = $status;
+            if ($status === 'delivered' && !$log->delivered_at) {
+                $log->delivered_at = $timestamp;
+            } elseif ($status === 'read') {
+                $log->read_at = $timestamp;
+                if (!$log->delivered_at) {
+                    $log->delivered_at = $timestamp;
+                }
+            }
+            $log->save();
+        }
+
+        // 2. Update CampaignMessage
+        $campMsg = CampaignMessage::where('message_id', $request->message_id)->first();
+        if ($campMsg) {
+            $oldStatus = $campMsg->status;
+            $campMsg->status = $status;
+            
+            if ($status === 'delivered') {
+                $campMsg->delivered_at = $timestamp;
+                
+                // Increment delivered_count on campaign if it transitioned
+                if ($campMsg->campaign && $oldStatus !== 'delivered') {
+                    $campMsg->campaign->increment('delivered_count');
+                }
+            }
+            $campMsg->save();
         }
 
         return response()->json(['success' => true]);

@@ -367,7 +367,7 @@ export const AgentDetailPage: React.FC = () => {
         {/* CONVERSATION DETAIL MODAL */}
         {viewConv && (
           <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-sm" onClick={() => setViewConv(null)}>
-            <div className="bg-white rounded-2xl w-full max-w-lg max-h-[85vh] overflow-hidden flex flex-col shadow-2xl" onClick={e => e.stopPropagation()}>
+            <div className="bg-white rounded-2xl w-full max-w-3xl max-h-[85vh] overflow-hidden flex flex-col shadow-2xl" onClick={e => e.stopPropagation()}>
               {/* Header */}
               <div className="px-5 py-4 border-b border-gray-100 flex items-center justify-between">
                 <div>
@@ -393,30 +393,86 @@ export const AgentDetailPage: React.FC = () => {
                 </div>
               </div>
 
-              {/* Messages */}
-              <div className="flex-1 overflow-y-auto p-4 space-y-2 bg-[#0b141a]">
-                {viewConv.is_escalated && (
-                  <div className="bg-amber-950/40 border border-amber-900/30 text-amber-300 rounded-xl p-3 text-[11px] font-semibold flex items-center gap-2 mb-3">
-                    <span>⚠️</span>
-                    <span>AI auto-replies are paused. Support must answer manually or resolve escalation.</span>
-                  </div>
-                )}
-                {(viewConv.messages || []).map((msg, idx) => (
-                  <div key={idx} className={`flex ${msg.role === 'user' ? 'justify-end' : 'justify-start'}`}>
-                    <div className={`max-w-[80%] rounded-2xl px-3.5 py-2 text-[13px] ${
-                      msg.role === 'user'
-                        ? 'bg-[#005c4b] text-gray-200 border border-[#025143]'
-                        : 'bg-[#1f2c34] text-gray-300 border border-[#2a3942]'
-                    }`}>
-                      <p className="whitespace-pre-wrap leading-relaxed">{msg.content}</p>
-                      {msg.timestamp && (
-                        <span className="block text-[8px] text-gray-500 text-right mt-1">
-                          {new Date(msg.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
-                        </span>
+              {/* Modal Body (Split Layout) */}
+              <div className="flex-1 flex overflow-hidden">
+                {/* Left section: Chat Messages */}
+                <div className="flex-1 overflow-y-auto p-4 space-y-2 bg-[#0b141a]">
+                  {viewConv.is_escalated && (
+                    <div className="bg-amber-950/40 border border-amber-900/30 text-amber-300 rounded-xl p-3 text-[11px] font-semibold flex items-center gap-2 mb-3">
+                      <span>⚠️</span>
+                      <span>AI auto-replies are paused. Support must answer manually or resolve escalation.</span>
+                    </div>
+                  )}
+                  {(viewConv.messages || []).map((msg, idx) => (
+                    <div key={idx} className={`flex ${msg.role === 'user' ? 'justify-end' : 'justify-start'} mb-2`}>
+                      <div className={`max-w-[80%] rounded-2xl px-3.5 py-2 text-[13px] ${
+                        msg.role === 'user'
+                          ? 'bg-[#005c4b] text-gray-200 border border-[#025143]'
+                          : 'bg-[#1f2c34] text-gray-300 border border-[#2a3942]'
+                      }`}>
+                        <p className="whitespace-pre-wrap leading-relaxed">{msg.content}</p>
+                        {msg.timestamp && (
+                          <span className="block text-[8px] text-gray-500 text-right mt-1">
+                            {new Date(msg.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                          </span>
+                        )}
+                      </div>
+                    </div>
+                  ))}
+                </div>
+
+                {/* Right section: Contact attributes extracted by AI */}
+                {viewConv.contact && (
+                  <div className="w-80 border-l border-gray-100 bg-gray-50/50 p-5 overflow-y-auto flex flex-col gap-5 shrink-0">
+                    <div>
+                      <h4 className="text-xs font-bold text-gray-400 uppercase tracking-wider mb-2">Lead Info</h4>
+                      <p className="text-sm font-black text-gray-800 truncate">{viewConv.contact.name || 'Anonymous Contact'}</p>
+                      <p className="text-xs text-gray-500 font-mono mt-0.5">{viewConv.contact_phone}</p>
+                      {viewConv.contact.is_opted_out && (
+                        <span className="inline-block mt-2 px-2 py-0.5 text-[10px] font-bold rounded bg-red-100 text-red-700 uppercase">🚫 Unsubscribed</span>
                       )}
                     </div>
+
+                    {viewConv.contact.email && (
+                      <div>
+                        <h4 className="text-xs font-bold text-gray-400 uppercase tracking-wider mb-1">Email</h4>
+                        <p className="text-xs text-gray-700 bg-white border border-gray-200 rounded-lg p-2 truncate">✉️ {viewConv.contact.email}</p>
+                      </div>
+                    )}
+
+                    {/* Auto-extracted tags */}
+                    <div>
+                      <h4 className="text-xs font-bold text-gray-400 uppercase tracking-wider mb-2">Extracted Tags</h4>
+                      {viewConv.contact.tags && viewConv.contact.tags.length > 0 ? (
+                        <div className="flex flex-wrap gap-1.5">
+                          {viewConv.contact.tags.map((tag, idx) => (
+                            <span key={idx} className="bg-purple-50 text-purple-700 border border-purple-200 px-2 py-0.5 rounded-full text-[10px] font-bold">
+                              🏷️ {tag}
+                            </span>
+                          ))}
+                        </div>
+                      ) : (
+                        <p className="text-xs text-gray-400 italic">No tags assigned yet.</p>
+                      )}
+                    </div>
+
+                    {/* Custom fields extracted */}
+                    <div>
+                      <h4 className="text-xs font-bold text-gray-400 uppercase tracking-wider mb-2">Custom Attributes</h4>
+                      <div className="space-y-2">
+                        {['custom1', 'custom2', 'custom3'].map((field, idx) => {
+                          const val = viewConv.contact?.[field as keyof typeof viewConv.contact];
+                          return (
+                            <div key={field} className="bg-white border border-gray-200 rounded-lg p-2.5">
+                              <span className="block text-[10px] font-bold text-gray-400 uppercase">Attribute {idx + 1}</span>
+                              <span className="block text-xs text-gray-700 mt-0.5 truncate">{val || <span className="text-gray-300 italic">Empty</span>}</span>
+                            </div>
+                          );
+                        })}
+                      </div>
+                    </div>
                   </div>
-                ))}
+                )}
               </div>
             </div>
           </div>

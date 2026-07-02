@@ -300,6 +300,15 @@ export interface AiConversation {
   messages?: { role: string; content: string; timestamp?: string }[]
   updated_at: string
   created_at: string
+  contact?: {
+    name?: string
+    email?: string
+    is_opted_out?: boolean
+    tags?: string[]
+    custom1?: string
+    custom2?: string
+    custom3?: string
+  } | null
 }
 
 export interface AiConfig {

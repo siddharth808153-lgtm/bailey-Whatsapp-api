@@ -42,13 +42,14 @@ class AiConversationController extends Controller
         return $this->success($conversations);
     }
 
-    /**
-     * Show full conversation history.
-     */
     public function show(Request $request, $agentId, $convId)
     {
         $agent = AiAgent::where('user_id', $request->user()->id)->findOrFail($agentId);
         $conversation = AiConversation::where('agent_id', $agent->id)->findOrFail($convId);
+
+        $contact = \App\Models\Contact::where('user_id', $request->user()->id)
+            ->where('phone', $conversation->contact_phone)
+            ->first();
 
         return $this->success([
             'id' => $conversation->id,
@@ -57,6 +58,15 @@ class AiConversationController extends Controller
             'messages' => $conversation->messages ?? [],
             'created_at' => $conversation->created_at,
             'updated_at' => $conversation->updated_at,
+            'contact' => $contact ? [
+                'name' => $contact->name,
+                'email' => $contact->email,
+                'is_opted_out' => $contact->is_opted_out,
+                'tags' => $contact->tags ?? [],
+                'custom1' => $contact->custom1,
+                'custom2' => $contact->custom2,
+                'custom3' => $contact->custom3,
+            ] : null,
         ]);
     }
 

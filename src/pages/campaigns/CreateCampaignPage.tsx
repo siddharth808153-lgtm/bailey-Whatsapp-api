@@ -3,6 +3,7 @@ import { INSTANCES, CONTACT_LISTS, TEMPLATES, CAMPAIGNS } from '../../api/endpoi
 import { WhatsappInstance, ContactList, MessageTemplate } from '../../types/index.js'
 import { useNavigate, useLocation } from 'react-router-dom'
 import axios from 'axios'
+import { MediaSelectorModal } from '../../components/media/MediaSelectorModal.jsx'
 
 export const CreateCampaignPage: React.FC = () => {
   const navigate = useNavigate()
@@ -29,6 +30,7 @@ export const CreateCampaignPage: React.FC = () => {
   const [showButtons, setShowButtons] = useState(false)
   const [templates, setTemplates] = useState<MessageTemplate[]>([])
   const [isTemplateModalOpen, setIsTemplateModalOpen] = useState(false)
+  const [isMediaModalOpen, setIsMediaModalOpen] = useState(false)
 
   // Step 3: Settings & Schedule
   const [minDelay, setMinDelay] = useState(5)
@@ -435,32 +437,27 @@ export const CreateCampaignPage: React.FC = () => {
               {messageType !== 'text' && (
                 <div className="space-y-3 p-4 bg-gray-50 border border-gray-150 rounded-xl">
                   <div>
-                    <label className="block text-xs font-semibold text-gray-500 uppercase tracking-wider mb-1">
-                      Media Attachment URL
+                    <label className="block text-xs font-semibold text-gray-500 uppercase tracking-wider mb-1.5">
+                      Media Attachment File (Select from File Manager)
                     </label>
-                    <input
-                      type="url"
-                      required
-                      placeholder="https://example.com/image.jpg"
-                      value={mediaUrl}
-                      onChange={(e) => setMediaUrl(e.target.value)}
-                      className="w-full px-3 py-2 border border-gray-200 rounded-lg outline-none text-xs text-gray-800 bg-white"
-                    />
-                  </div>
-                  {messageType === 'document' && (
-                    <div>
-                      <label className="block text-xs font-semibold text-gray-500 uppercase tracking-wider mb-1">
-                        Document Filename (Optional)
-                      </label>
+                    <div className="flex gap-2">
                       <input
                         type="text"
-                        placeholder="Invoice.pdf"
-                        value={mediaFilename}
-                        onChange={(e) => setMediaFilename(e.target.value)}
-                        className="w-full px-3 py-2 border border-gray-200 rounded-lg outline-none text-xs text-gray-800 bg-white"
+                        readOnly
+                        required
+                        placeholder="Click Select to choose from File Manager..."
+                        value={mediaUrl ? `${mediaFilename || 'File'} (${mediaUrl})` : ''}
+                        className="flex-1 px-3 py-2 border border-gray-200 rounded-lg outline-none text-xs text-gray-500 bg-gray-100 cursor-not-allowed"
                       />
+                      <button
+                        type="button"
+                        onClick={() => setIsMediaModalOpen(true)}
+                        className="bg-blue-600 hover:bg-blue-700 text-white font-bold py-1.5 px-4 rounded-xl text-xs transition-colors shrink-0"
+                      >
+                        Select File
+                      </button>
                     </div>
-                  )}
+                  </div>
                 </div>
               )}
 
@@ -804,6 +801,16 @@ export const CreateCampaignPage: React.FC = () => {
           </div>
         </div>
       )}
+      {/* MEDIA SELECTOR MODAL */}
+      <MediaSelectorModal
+        isOpen={isMediaModalOpen}
+        onClose={() => setIsMediaModalOpen(false)}
+        onSelect={(url, name) => {
+          setMediaUrl(url)
+          setMediaFilename(name)
+          setIsMediaModalOpen(false)
+        }}
+      />
 
     </div>
   )

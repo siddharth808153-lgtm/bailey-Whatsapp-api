@@ -21,6 +21,7 @@ import { EnrollmentsPage } from './pages/drip/EnrollmentsPage.js'
 import { WarmupPage } from './pages/warmup/WarmupPage.js'
 import { ConnectionsPage } from './pages/instances/ConnectionsPage.js'
 import { QuickSendPage } from './pages/campaigns/QuickSendPage.js'
+import { FileManagerPage } from './pages/media/FileManagerPage.js'
 
 export const App: React.FC = () => {
   const token = localStorage.getItem('wasp_token')
@@ -81,6 +82,9 @@ export const App: React.FC = () => {
 
             {/* Admin routes */}
             <Route path="/admin/users" element={<UsersPage />} />
+
+            {/* Storage routes */}
+            <Route path="/files" element={<FileManagerPage />} />
 
             {/* Fallback redirect */}
             <Route path="*" element={<Navigate to="/contacts" replace />} />

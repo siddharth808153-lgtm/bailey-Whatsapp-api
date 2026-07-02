@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react'
 import { DripStep } from '../../types/index.js'
+import { MediaSelectorModal } from '../media/MediaSelectorModal.jsx'
 
 interface StepEditorModalProps {
   isOpen: boolean
@@ -21,6 +22,7 @@ export const StepEditorModal: React.FC<StepEditorModalProps> = ({
   const [messageType, setMessageType] = useState<'text' | 'image' | 'video' | 'document'>('text')
   const [messageBody, setMessageBody] = useState('')
   const [mediaUrl, setMediaUrl] = useState('')
+  const [isMediaModalOpen, setIsMediaModalOpen] = useState(false)
 
   useEffect(() => {
     if (step) {
@@ -142,17 +144,27 @@ export const StepEditorModal: React.FC<StepEditorModalProps> = ({
             </div>
           </div>
 
-          {/* Media URL Input */}
+           {/* Media URL Input */}
           {messageType !== 'text' && (
             <div>
-              <label className="block text-[10px] font-bold text-gray-500 uppercase tracking-wider mb-1.5">Media Attachment URL</label>
-              <input
-                type="url"
-                value={mediaUrl}
-                onChange={e => setMediaUrl(e.target.value)}
-                placeholder="https://example.com/file.png"
-                className="w-full px-4 py-2.5 bg-gray-50 border border-gray-200 rounded-xl text-sm outline-none focus:border-blue-500 transition-colors"
-              />
+              <label className="block text-[10px] font-bold text-gray-500 uppercase tracking-wider mb-1.5">Media Attachment File (Select from File Manager)</label>
+              <div className="flex gap-2">
+                <input
+                  type="text"
+                  readOnly
+                  required
+                  placeholder="Click Select to choose from File Manager..."
+                  value={mediaUrl ? mediaUrl : ''}
+                  className="flex-1 px-4 py-2.5 bg-gray-100 border border-gray-200 rounded-xl text-sm outline-none text-gray-500 cursor-not-allowed"
+                />
+                <button
+                  type="button"
+                  onClick={() => setIsMediaModalOpen(true)}
+                  className="bg-blue-600 hover:bg-blue-700 text-white font-bold py-1.5 px-4 rounded-xl text-xs transition-colors shrink-0"
+                >
+                  Select File
+                </button>
+              </div>
             </div>
           )}
 
@@ -225,6 +237,15 @@ export const StepEditorModal: React.FC<StepEditorModalProps> = ({
         </div>
 
       </div>
+
+      <MediaSelectorModal
+        isOpen={isMediaModalOpen}
+        onClose={() => setIsMediaModalOpen(false)}
+        onSelect={(url, name) => {
+          setMediaUrl(url)
+          setIsMediaModalOpen(false)
+        }}
+      />
     </div>
   )
 }

@@ -3,6 +3,7 @@ import { TEMPLATES } from '../../api/endpoints.js'
 import { MessageTemplate } from '../../types/index.js'
 import { useNavigate } from 'react-router-dom'
 import axios from 'axios'
+import { MediaSelectorModal } from '../../components/media/MediaSelectorModal.jsx'
 
 export const MessageTemplatesPage: React.FC = () => {
   const navigate = useNavigate()
@@ -27,6 +28,7 @@ export const MessageTemplatesPage: React.FC = () => {
   
   const [errorMsg, setErrorMsg] = useState('')
   const [isSubmitting, setIsSubmitting] = useState(false)
+  const [isMediaModalOpen, setIsMediaModalOpen] = useState(false)
 
   useEffect(() => {
     fetchTemplates()
@@ -386,28 +388,25 @@ export const MessageTemplatesPage: React.FC = () => {
                 {messageType !== 'text' && (
                   <div className="p-4 bg-gray-55/35 border border-gray-150 rounded-xl space-y-3">
                     <div>
-                      <label className="block text-xs font-semibold text-gray-500 uppercase tracking-wider mb-1">Attachment media URL</label>
-                      <input
-                        type="url"
-                        required
-                        placeholder="https://example.com/image.jpg"
-                        value={mediaUrl}
-                        onChange={(e) => setMediaUrl(e.target.value)}
-                        className="w-full px-3 py-2 border border-gray-200 rounded-lg outline-none text-xs bg-white"
-                      />
-                    </div>
-                    {messageType === 'document' && (
-                      <div>
-                        <label className="block text-xs font-semibold text-gray-500 uppercase tracking-wider mb-1">Filename</label>
+                      <label className="block text-xs font-semibold text-gray-500 uppercase tracking-wider mb-1.5">Attachment media File (Select from File Manager)</label>
+                      <div className="flex gap-2">
                         <input
                           type="text"
-                          placeholder="Invoice.pdf"
-                          value={mediaFilename}
-                          onChange={(e) => setMediaFilename(e.target.value)}
-                          className="w-full px-3 py-2 border border-gray-200 rounded-lg outline-none text-xs bg-white"
+                          readOnly
+                          required
+                          placeholder="Click Select to choose from File Manager..."
+                          value={mediaUrl ? `${mediaFilename || 'File'} (${mediaUrl})` : ''}
+                          className="flex-1 px-3 py-2 border border-gray-200 rounded-lg outline-none text-xs text-gray-500 bg-gray-100 cursor-not-allowed"
                         />
+                        <button
+                          type="button"
+                          onClick={() => setIsMediaModalOpen(true)}
+                          className="bg-blue-600 hover:bg-blue-700 text-white font-bold py-1.5 px-4 rounded-xl text-xs transition-colors shrink-0"
+                        >
+                          Select File
+                        </button>
                       </div>
-                    )}
+                    </div>
                   </div>
                 )}
 
@@ -548,6 +547,16 @@ export const MessageTemplatesPage: React.FC = () => {
           </div>
         </div>
       )}
+      {/* MEDIA SELECTOR MODAL */}
+      <MediaSelectorModal
+        isOpen={isMediaModalOpen}
+        onClose={() => setIsMediaModalOpen(false)}
+        onSelect={(url, name) => {
+          setMediaUrl(url)
+          setMediaFilename(name)
+          setIsMediaModalOpen(false)
+        }}
+      />
 
     </div>
   )

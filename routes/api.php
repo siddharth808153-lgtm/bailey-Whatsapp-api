@@ -17,6 +17,7 @@ use App\Http\Controllers\Api\DripSequenceController;
 use App\Http\Controllers\Api\DripStepController;
 use App\Http\Controllers\Api\DripEnrollmentController;
 use App\Http\Controllers\Api\WarmupController;
+use App\Http\Controllers\Api\MediaFileController;
 use Illuminate\Support\Facades\Route;
 
 /*
@@ -240,6 +241,12 @@ Route::middleware(['auth:sanctum', 'track.login'])->group(function () {
 
         Route::prefix('templates')->group(function () {
             // Placeholder: Message templates CRUD
+        });
+        // File Manager / Storage
+        Route::prefix('media')->group(function () {
+            Route::get('/', [MediaFileController::class, 'index']);
+            Route::post('/', [MediaFileController::class, 'store']);
+            Route::delete('/{id}', [MediaFileController::class, 'destroy']);
         });
     });
 });

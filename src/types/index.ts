@@ -252,3 +252,15 @@ export interface WarmupDay {
   active: boolean
 }
 
+export interface MediaFile {
+  id: number
+  user_id: number
+  name: string
+  path: string
+  url: string
+  mime_type: string
+  size: number
+  created_at: string
+}
+
+

@@ -106,3 +106,10 @@ export const WARMUP = {
   HISTORY: (id: number) => `/warmup/${id}/history`,
 }
 
+export const MEDIA = {
+  LIST: '/media',
+  UPLOAD: '/media',
+  DELETE: (id: number) => `/media/${id}`,
+}
+
+

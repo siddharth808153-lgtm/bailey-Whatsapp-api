@@ -95,6 +95,7 @@ Route::middleware(['auth:sanctum', 'track.login'])->group(function () {
         Route::post('/resellers/{id}/add-credits', [SuperAdminController::class, 'addResellerCredits']);
         Route::get('/settings', [SuperAdminController::class, 'globalSettings']);
         Route::post('/settings', [SuperAdminController::class, 'globalSettings']);
+        Route::post('/impersonate/{id}', [SuperAdminController::class, 'impersonate']);
     });
 
     // -------------------------------------------------------------------

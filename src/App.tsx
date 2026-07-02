@@ -13,6 +13,8 @@ import { MessageTemplatesPage } from './pages/campaigns/MessageTemplatesPage.js'
 import { ChatbotPage } from './pages/chatbot/ChatbotPage.js'
 import { FlowBuilderPage } from './pages/chatbot/FlowBuilderPage.js'
 import { ConversationsPage } from './pages/chatbot/ConversationsPage.js'
+import { LoginPage } from './pages/auth/LoginPage.js'
+import { UsersPage } from './pages/admin/UsersPage.js'
 
 // Simple placeholder page for connection instances
 const InstancesPagePlaceholder: React.FC = () => (
@@ -23,6 +25,21 @@ const InstancesPagePlaceholder: React.FC = () => (
 )
 
 export const App: React.FC = () => {
+  const token = localStorage.getItem('wasp_token')
+  const isLoggedIn = !!token
+
+  // If not logged in, force route to login
+  if (!isLoggedIn) {
+    return (
+      <BrowserRouter>
+        <Routes>
+          <Route path="/login" element={<LoginPage />} />
+          <Route path="*" element={<Navigate to="/login" replace />} />
+        </Routes>
+      </BrowserRouter>
+    )
+  }
+
   return (
     <BrowserRouter>
       <div className="flex w-screen h-screen overflow-hidden font-sans antialiased text-gray-800 bg-gray-50/50">
@@ -53,6 +70,9 @@ export const App: React.FC = () => {
             <Route path="/chatbot" element={<ChatbotPage />} />
             <Route path="/chatbot/flows/:id" element={<FlowBuilderPage />} />
             <Route path="/chatbot/conversations" element={<ConversationsPage />} />
+
+            {/* Admin routes */}
+            <Route path="/admin/users" element={<UsersPage />} />
 
             {/* Fallback redirect */}
             <Route path="*" element={<Navigate to="/contacts" replace />} />

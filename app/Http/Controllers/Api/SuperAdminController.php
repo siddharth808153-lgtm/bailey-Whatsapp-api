@@ -307,4 +307,19 @@ class SuperAdminController extends Controller
             'Settings update acknowledged. Note: Config-based settings require .env updates in the current implementation.'
         );
     }
+
+    /**
+     * Impersonate a user (generate Sanctum token for them).
+     */
+    public function impersonate($id)
+    {
+        $user = User::findOrFail($id);
+
+        $token = $user->createToken('impersonation')->plainTextToken;
+
+        return $this->success([
+            'token' => $token,
+            'user' => new UserResource($user),
+        ], 'Impersonating user: ' . $user->name);
+    }
 }

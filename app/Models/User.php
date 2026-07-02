@@ -30,6 +30,8 @@ class User extends Authenticatable
         'email_verified_at',
         'trial_ends_at',
         'last_login_at',
+        'ai_provider',
+        'ai_api_key',
     ];
 
     /**
@@ -40,6 +42,7 @@ class User extends Authenticatable
     protected $hidden = [
         'password',
         'remember_token',
+        'ai_api_key',
     ];
 
     /**
@@ -149,5 +152,13 @@ class User extends Authenticatable
     public function apiKeys()
     {
         return $this->hasMany(ApiKey::class);
+    }
+
+    /**
+     * Get the AI agents for the user.
+     */
+    public function aiAgents()
+    {
+        return $this->hasMany(AiAgent::class);
     }
 }

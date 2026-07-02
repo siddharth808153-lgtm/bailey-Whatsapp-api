@@ -157,9 +157,9 @@ export const Sidebar: React.FC = () => {
             </NavLink>
           </div>
 
-          {/* Chatbot & AI Section Group */}
+          {/* Chatbot Section Group */}
           <div className="space-y-1.5">
-            <p className="text-[10px] font-bold text-gray-500 uppercase tracking-wider px-3 mb-2">Chatbot & AI</p>
+            <p className="text-[10px] font-bold text-gray-500 uppercase tracking-wider px-3 mb-2">Chatbot</p>
             
             <NavLink
               to="/chatbot"
@@ -180,6 +180,21 @@ export const Sidebar: React.FC = () => {
             >
               <span>💬</span>
               <span>Conversations</span>
+            </NavLink>
+          </div>
+
+          {/* AI Agents Section Group */}
+          <div className="space-y-1.5">
+            <p className="text-[10px] font-bold text-gray-500 uppercase tracking-wider px-3 mb-2">AI Agents</p>
+            
+            <NavLink
+              to="/ai/agents"
+              className={({ isActive }) =>
+                `flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-semibold transition-all ${isActive ? 'bg-blue-600 text-white shadow-lg shadow-blue-900/30' : 'hover:bg-gray-800 hover:text-white'}`
+              }
+            >
+              <span>🧠</span>
+              <span>AI Agents</span>
             </NavLink>
           </div>
 

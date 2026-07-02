@@ -25,6 +25,7 @@ class ChatbotFlow extends Model
         'ai_provider',
         'ai_api_key',
         'ai_system_prompt',
+        'agent_id',
     ];
 
     protected $hidden = [
@@ -55,5 +56,10 @@ class ChatbotFlow extends Model
     public function chatbotConversations()
     {
         return $this->hasMany(ChatbotConversation::class, 'flow_id');
+    }
+
+    public function aiAgent()
+    {
+        return $this->belongsTo(AiAgent::class, 'agent_id');
     }
 }

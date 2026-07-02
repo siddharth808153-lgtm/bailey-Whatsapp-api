@@ -149,6 +149,8 @@ export interface ChatbotFlow {
   use_ai: boolean
   ai_provider?: 'openai' | 'gemini' | 'anthropic'
   ai_system_prompt?: string
+  agent_id?: number
+  ai_agent?: AiAgent
   whatsapp_instance?: WhatsappInstance
   chatbot_rules?: ChatbotRule[]
   chatbot_rules_count?: number
@@ -263,4 +265,44 @@ export interface MediaFile {
   created_at: string
 }
 
+export interface AiAgent {
+  id: number
+  user_id: number
+  name: string
+  system_prompt?: string
+  temperature: number
+  max_tokens: number
+  is_active: boolean
+  knowledge_docs_count?: number
+  conversations_count?: number
+  chatbot_flows_count?: number
+  knowledge_docs?: AiKnowledgeDoc[]
+  created_at: string
+  updated_at?: string
+}
 
+export interface AiKnowledgeDoc {
+  id: number
+  name: string
+  mime_type?: string
+  size: number
+  content_preview?: string
+  created_at: string
+}
+
+export interface AiConversation {
+  id: number
+  contact_phone?: string
+  message_count?: number
+  last_message?: string
+  last_message_role?: string
+  messages?: { role: string; content: string; timestamp?: string }[]
+  updated_at: string
+  created_at: string
+}
+
+export interface AiConfig {
+  provider: 'openai' | 'gemini' | 'anthropic' | null
+  has_key: boolean
+  masked_key: string | null
+}

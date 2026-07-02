@@ -27,7 +27,7 @@ class ChatbotFlowController extends Controller
         $user = auth()->user();
 
         $flows = $user->chatbotFlows()
-            ->with(['whatsappInstance:id,name,phone_number,status'])
+            ->with(['whatsappInstance:id,name,phone_number,status', 'aiAgent:id,name'])
             ->withCount(['chatbotRules', 'chatbotConversations as active_conversations_count' => function ($q) {
                 $q->where('is_active', true);
             }])
@@ -65,6 +65,7 @@ class ChatbotFlowController extends Controller
             'ai_provider' => 'nullable|in:openai,gemini,anthropic|required_if:use_ai,true',
             'ai_api_key' => 'nullable|string|required_if:use_ai,true',
             'ai_system_prompt' => 'nullable|string|max:2000',
+            'agent_id' => 'nullable|exists:ai_agents,id',
         ]);
 
         // Enforce AI plan check
@@ -84,6 +85,7 @@ class ChatbotFlowController extends Controller
             'name', 'instance_id', 'trigger_type',
             'business_hours_only', 'business_hours_start', 'business_hours_end',
             'away_message', 'use_ai', 'ai_provider', 'ai_system_prompt',
+            'agent_id',
         ]);
 
         $data['user_id'] = $user->id;
@@ -113,6 +115,7 @@ class ChatbotFlowController extends Controller
 
         $flow->load([
             'whatsappInstance:id,name,phone_number,status',
+            'aiAgent:id,name',
             'chatbotRules' => function ($q) {
                 $q->orderBy('priority', 'desc')->orderBy('is_default', 'asc');
             },
@@ -152,6 +155,7 @@ class ChatbotFlowController extends Controller
             'ai_provider' => 'nullable|in:openai,gemini,anthropic',
             'ai_api_key' => 'nullable|string',
             'ai_system_prompt' => 'nullable|string|max:2000',
+            'agent_id' => 'nullable|exists:ai_agents,id',
         ]);
 
         // Enforce AI plan check if enabling AI
@@ -171,6 +175,7 @@ class ChatbotFlowController extends Controller
             'name', 'instance_id', 'trigger_type', 'is_active',
             'business_hours_only', 'business_hours_start', 'business_hours_end',
             'away_message', 'use_ai', 'ai_provider', 'ai_system_prompt',
+            'agent_id',
         ]);
 
         // Re-encrypt AI API key if changed

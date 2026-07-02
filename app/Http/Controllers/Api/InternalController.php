@@ -10,6 +10,7 @@ use App\Models\ChatbotConversation;
 use App\Models\ChatbotFlow;
 use App\Models\ChatbotRule;
 use App\Models\Contact;
+use App\Models\AiConversation;
 use App\Models\MessageLog;
 use App\Models\WarmupSession;
 use App\Models\WhatsappInstance;
@@ -258,8 +259,8 @@ class InternalController extends Controller
         if ($flow->trigger_type === 'first_message') {
             $isFirstMessage = $conversation->wasRecentlyCreated;
             if (!$isFirstMessage) {
-                // For AI-enabled flows, still process via AI on subsequent messages
-                if ($flow->use_ai) {
+                // For AI-enabled flows (agent or legacy), still process via AI on subsequent messages
+                if ($flow->agent_id || $flow->use_ai) {
                     return $this->handleAiReply($flow, $conversation, $body);
                 }
                 return response()->json(['success' => true, 'data' => ['reply' => null]]);
@@ -288,8 +289,8 @@ class InternalController extends Controller
                 ->first();
         }
 
-        // If no rule matched and AI is enabled, use AI
-        if (!$matchedRule && $flow->use_ai) {
+        // If no rule matched and AI is enabled (agent or legacy), use AI
+        if (!$matchedRule && ($flow->agent_id || $flow->use_ai)) {
             return $this->handleAiReply($flow, $conversation, $body);
         }
 
@@ -351,6 +352,7 @@ class InternalController extends Controller
 
     /**
      * Handle AI-powered reply for a chatbot flow.
+     * Supports both new agent-based and legacy per-flow AI config.
      */
     private function handleAiReply(
         ChatbotFlow $flow,
@@ -360,7 +362,42 @@ class InternalController extends Controller
         $aiService = app(AiChatbotService::class);
         $history = $aiService->buildHistory($conversation);
 
-        $aiReply = $aiService->getReply($flow, $body, $history);
+        $aiReply = null;
+
+        // NEW: Agent-based AI reply
+        if ($flow->agent_id && $flow->aiAgent) {
+            $agent = $flow->aiAgent;
+            $user = $flow->user;
+
+            if ($user && $user->ai_provider && $user->ai_api_key) {
+                $aiReply = $aiService->getAgentReply($agent, $user, $body, $history);
+
+                // Also persist to AiConversation for the agent's conversation log
+                if ($aiReply) {
+                    $contactPhone = $conversation->contact_phone;
+                    $aiConv = AiConversation::firstOrCreate(
+                        [
+                            'user_id' => $user->id,
+                            'agent_id' => $agent->id,
+                            'contact_phone' => $contactPhone,
+                        ],
+                        ['messages' => []]
+                    );
+                    $messages = $aiConv->messages ?? [];
+                    $messages[] = ['role' => 'user', 'content' => $body, 'timestamp' => now()->toIso8601String()];
+                    $messages[] = ['role' => 'assistant', 'content' => $aiReply, 'timestamp' => now()->toIso8601String()];
+                    if (count($messages) > 50) {
+                        $messages = array_slice($messages, -50);
+                    }
+                    $aiConv->update(['messages' => $messages]);
+                }
+            }
+        }
+
+        // LEGACY: Per-flow AI config fallback
+        if (!$aiReply && $flow->use_ai && $flow->ai_api_key) {
+            $aiReply = $aiService->getReply($flow, $body, $history);
+        }
 
         if ($aiReply) {
             $aiService->appendHistory($conversation, $body, $aiReply);

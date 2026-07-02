@@ -22,6 +22,8 @@ import { WarmupPage } from './pages/warmup/WarmupPage.js'
 import { ConnectionsPage } from './pages/instances/ConnectionsPage.js'
 import { QuickSendPage } from './pages/campaigns/QuickSendPage.js'
 import { FileManagerPage } from './pages/media/FileManagerPage.js'
+import { AiAgentsPage } from './pages/ai/AiAgentsPage.js'
+import { AgentDetailPage } from './pages/ai/AgentDetailPage.js'
 
 export const App: React.FC = () => {
   const token = localStorage.getItem('wasp_token')
@@ -85,6 +87,10 @@ export const App: React.FC = () => {
 
             {/* Storage routes */}
             <Route path="/files" element={<FileManagerPage />} />
+
+            {/* AI Agent routes */}
+            <Route path="/ai/agents" element={<AiAgentsPage />} />
+            <Route path="/ai/agents/:id" element={<AgentDetailPage />} />
 
             {/* Fallback redirect */}
             <Route path="*" element={<Navigate to="/contacts" replace />} />

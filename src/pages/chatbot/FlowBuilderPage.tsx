@@ -123,8 +123,15 @@ export const FlowBuilderPage: React.FC = () => {
               {flow.whatsapp_instance && (
                 <span className="text-xs text-gray-400">📱 {flow.whatsapp_instance.name}</span>
               )}
-              {flow.use_ai && (
-                <span className="px-2 py-0.5 text-[10px] font-bold rounded-full uppercase bg-purple-100 text-purple-700">🤖 AI Enabled</span>
+              {flow.agent_id && (flow as any).ai_agent && (
+                <span className="px-2 py-0.5 text-[10px] font-bold rounded-full uppercase bg-purple-100 text-purple-700">
+                  🧠 Agent: {(flow as any).ai_agent.name}
+                </span>
+              )}
+              {!flow.agent_id && flow.use_ai && (
+                <span className="px-2 py-0.5 text-[10px] font-bold rounded-full uppercase bg-purple-100 text-purple-700">
+                  🤖 AI Enabled (Legacy)
+                </span>
               )}
             </div>
           </div>

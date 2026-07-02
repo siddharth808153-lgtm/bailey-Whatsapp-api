@@ -112,4 +112,14 @@ export const MEDIA = {
   DELETE: (id: number) => `/media/${id}`,
 }
 
-
+export const AI = {
+  CONFIG: '/ai/config',
+  AGENTS: '/ai/agents',
+  AGENT_DETAIL: (id: number) => `/ai/agents/${id}`,
+  AGENT_PLAYGROUND: (id: number) => `/ai/agents/${id}/playground`,
+  AGENT_CLEAR_PLAYGROUND: (id: number) => `/ai/agents/${id}/playground`,
+  KNOWLEDGE: (agentId: number) => `/ai/agents/${agentId}/knowledge`,
+  KNOWLEDGE_DELETE: (agentId: number, docId: number) => `/ai/agents/${agentId}/knowledge/${docId}`,
+  CONVERSATIONS: (agentId: number) => `/ai/agents/${agentId}/conversations`,
+  CONVERSATION_DETAIL: (agentId: number, convId: number) => `/ai/agents/${agentId}/conversations/${convId}`,
+}

@@ -18,6 +18,10 @@ use App\Http\Controllers\Api\DripStepController;
 use App\Http\Controllers\Api\DripEnrollmentController;
 use App\Http\Controllers\Api\WarmupController;
 use App\Http\Controllers\Api\MediaFileController;
+use App\Http\Controllers\Api\AiAgentController;
+use App\Http\Controllers\Api\AiConfigController;
+use App\Http\Controllers\Api\AiKnowledgeController;
+use App\Http\Controllers\Api\AiConversationController;
 use Illuminate\Support\Facades\Route;
 
 /*
@@ -247,6 +251,32 @@ Route::middleware(['auth:sanctum', 'track.login'])->group(function () {
             Route::get('/', [MediaFileController::class, 'index']);
             Route::post('/', [MediaFileController::class, 'store']);
             Route::delete('/{id}', [MediaFileController::class, 'destroy']);
+        });
+
+        // AI Agent System
+        Route::prefix('ai')->group(function () {
+            // Global API key config
+            Route::get('/config', [AiConfigController::class, 'show']);
+            Route::post('/config', [AiConfigController::class, 'update']);
+
+            // Agents CRUD
+            Route::get('/agents', [AiAgentController::class, 'index']);
+            Route::post('/agents', [AiAgentController::class, 'store']);
+            Route::get('/agents/{id}', [AiAgentController::class, 'show']);
+            Route::put('/agents/{id}', [AiAgentController::class, 'update']);
+            Route::delete('/agents/{id}', [AiAgentController::class, 'destroy']);
+            Route::post('/agents/{id}/playground', [AiAgentController::class, 'playground']);
+            Route::delete('/agents/{id}/playground', [AiAgentController::class, 'clearPlayground']);
+
+            // Knowledge Base (per agent)
+            Route::get('/agents/{agentId}/knowledge', [AiKnowledgeController::class, 'index']);
+            Route::post('/agents/{agentId}/knowledge', [AiKnowledgeController::class, 'store']);
+            Route::delete('/agents/{agentId}/knowledge/{docId}', [AiKnowledgeController::class, 'destroy']);
+
+            // Conversations (per agent)
+            Route::get('/agents/{agentId}/conversations', [AiConversationController::class, 'index']);
+            Route::get('/agents/{agentId}/conversations/{convId}', [AiConversationController::class, 'show']);
+            Route::delete('/agents/{agentId}/conversations/{convId}', [AiConversationController::class, 'destroy']);
         });
     });
 });

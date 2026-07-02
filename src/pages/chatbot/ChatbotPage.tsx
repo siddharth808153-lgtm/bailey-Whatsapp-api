@@ -62,7 +62,7 @@ export const ChatbotPage: React.FC = () => {
   // Stats
   const totalFlows = flows.length
   const activeFlows = flows.filter(f => f.is_active).length
-  const aiFlows = flows.filter(f => f.use_ai).length
+  const aiFlows = flows.filter(f => f.agent_id || f.use_ai).length
   const totalConversations = flows.reduce((s, f) => s + (f.active_conversations_count || 0), 0)
 
   const triggerBadge = (type: string) => {
@@ -93,8 +93,8 @@ export const ChatbotPage: React.FC = () => {
         {/* Header */}
         <div className="flex items-center justify-between mb-8">
           <div>
-            <h1 className="text-2xl font-black text-gray-900 tracking-tight">Chatbot & AI</h1>
-            <p className="text-sm text-gray-500 mt-1">Build automated reply flows with keyword triggers and AI-powered responses.</p>
+            <h1 className="text-2xl font-black text-gray-900 tracking-tight">Chatbot</h1>
+            <p className="text-sm text-gray-500 mt-1">Build automated reply flows with keyword triggers and AI agent integration.</p>
           </div>
           <button
             onClick={() => { setEditFlow(null); setShowCreate(true) }}
@@ -109,7 +109,7 @@ export const ChatbotPage: React.FC = () => {
           {[
             { label: 'Total Flows', value: totalFlows, icon: '🔄', color: 'from-blue-500 to-blue-600' },
             { label: 'Active Flows', value: activeFlows, icon: '✅', color: 'from-green-500 to-green-600' },
-            { label: 'AI-Powered', value: aiFlows, icon: '🤖', color: 'from-purple-500 to-purple-600' },
+            { label: 'Agent-Linked', value: aiFlows, icon: '🧠', color: 'from-purple-500 to-purple-600' },
             { label: 'Active Chats', value: totalConversations, icon: '💬', color: 'from-amber-500 to-amber-600' },
           ].map((stat, i) => (
             <div key={i} className="bg-white rounded-2xl border border-gray-100 p-5 shadow-sm hover:shadow-md transition-shadow">
@@ -168,7 +168,11 @@ export const ChatbotPage: React.FC = () => {
                 {/* Badges */}
                 <div className="flex flex-wrap gap-1.5">
                   {triggerBadge(flow.trigger_type)}
-                  {flow.use_ai && providerBadge(flow.ai_provider)}
+                  {flow.agent_id && flow.ai_agent ? (
+                    <span className="px-2 py-0.5 text-[10px] font-bold rounded-full uppercase bg-purple-100 text-purple-700">🧠 {flow.ai_agent.name}</span>
+                  ) : flow.use_ai ? (
+                    providerBadge(flow.ai_provider)
+                  ) : null}
                   {flow.business_hours_only && (
                     <span className="px-2 py-0.5 text-[10px] font-bold rounded-full uppercase bg-indigo-100 text-indigo-700">🕐 Hrs</span>
                   )}

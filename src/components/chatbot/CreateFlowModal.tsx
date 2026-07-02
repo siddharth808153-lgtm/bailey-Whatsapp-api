@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react'
 import axios from 'axios'
-import { CHATBOT } from '../../api/endpoints.js'
-import { ChatbotFlow, WhatsappInstance } from '../../types/index.js'
+import { CHATBOT, AI } from '../../api/endpoints.js'
+import { ChatbotFlow, WhatsappInstance, AiAgent } from '../../types/index.js'
 
 interface Props {
   flow: ChatbotFlow | null
@@ -10,7 +10,7 @@ interface Props {
   onSaved: () => void
 }
 
-type Tab = 'basic' | 'hours' | 'ai'
+type Tab = 'basic' | 'hours' | 'agent'
 
 export const CreateFlowModal: React.FC<Props> = ({ flow, instances, onClose, onSaved }) => {
   const isEdit = !!flow
@@ -31,20 +31,20 @@ export const CreateFlowModal: React.FC<Props> = ({ flow, instances, onClose, onS
   const [hoursEnd, setHoursEnd] = useState(flow?.business_hours_end || '18:00')
   const [awayMessage, setAwayMessage] = useState(flow?.away_message || '')
 
-  // AI Settings
-  const [useAi, setUseAi] = useState(flow?.use_ai || false)
-  const [aiProvider, setAiProvider] = useState(flow?.ai_provider || 'openai')
-  const [aiApiKey, setAiApiKey] = useState('')
-  const [aiSystemPrompt, setAiSystemPrompt] = useState(
-    flow?.ai_system_prompt || 'You are a helpful WhatsApp assistant. Keep replies concise and friendly. Reply in the same language as the user.'
-  )
+  // AI Agent (replaces old ai_provider/ai_api_key/ai_system_prompt)
+  const [agentId, setAgentId] = useState<string>((flow as any)?.agent_id?.toString() || '')
+  const [agents, setAgents] = useState<AiAgent[]>([])
 
-  const promptPresets = [
-    { label: 'Customer Support', prompt: 'You are a customer support agent. Be polite, helpful, and concise. Ask clarifying questions when needed. Never use markdown formatting.' },
-    { label: 'Sales Assistant', prompt: 'You are a sales assistant. Be enthusiastic and helpful. Highlight benefits. Ask about their needs. Never use markdown formatting.' },
-    { label: 'FAQ Bot', prompt: 'You are an FAQ bot. Answer common questions clearly. If unsure, offer to connect with a human agent. Never use markdown formatting.' },
-    { label: 'Appointment Scheduler', prompt: 'You are an appointment scheduling assistant. Help users book appointments by asking for date, time, and service needed. Never use markdown formatting.' },
-  ]
+  // Fetch available agents
+  useEffect(() => {
+    const fetchAgents = async () => {
+      try {
+        const res = await axios.get(AI.AGENTS)
+        setAgents(res.data.data || [])
+      } catch { /* silent */ }
+    }
+    fetchAgents()
+  }, [])
 
   const handleSubmit = async () => {
     setError('')
@@ -61,11 +61,9 @@ export const CreateFlowModal: React.FC<Props> = ({ flow, instances, onClose, onS
         business_hours_start: businessHoursOnly ? hoursStart : null,
         business_hours_end: businessHoursOnly ? hoursEnd : null,
         away_message: businessHoursOnly ? awayMessage : null,
-        use_ai: useAi,
-        ai_provider: useAi ? aiProvider : null,
-        ai_system_prompt: useAi ? aiSystemPrompt : null,
+        agent_id: agentId ? parseInt(agentId) : null,
+        use_ai: false, // Legacy field — no longer used from modal
       }
-      if (aiApiKey) payload.ai_api_key = aiApiKey
 
       if (isEdit) {
         await axios.put(CHATBOT.FLOW_DETAIL(flow!.id), payload)
@@ -100,7 +98,7 @@ export const CreateFlowModal: React.FC<Props> = ({ flow, instances, onClose, onS
         <div className="flex gap-2 px-6 pt-4">
           <button className={tabClasses('basic')} onClick={() => setTab('basic')}>Basic Settings</button>
           <button className={tabClasses('hours')} onClick={() => setTab('hours')}>Business Hours</button>
-          <button className={tabClasses('ai')} onClick={() => setTab('ai')}>AI Settings</button>
+          <button className={tabClasses('agent')} onClick={() => setTab('agent')}>🧠 AI Agent</button>
         </div>
 
         <div className="px-6 py-5 space-y-5">
@@ -223,78 +221,44 @@ export const CreateFlowModal: React.FC<Props> = ({ flow, instances, onClose, onS
             </>
           )}
 
-          {/* AI Settings Tab */}
-          {tab === 'ai' && (
+          {/* AI Agent Tab (replaces old AI Settings tab) */}
+          {tab === 'agent' && (
             <>
-              <label className="flex items-center gap-3 cursor-pointer">
-                <input
-                  type="checkbox"
-                  checked={useAi}
-                  onChange={e => setUseAi(e.target.checked)}
-                  className="w-4 h-4 rounded border-gray-300 text-blue-600 focus:ring-blue-500"
-                />
-                <span className="text-sm font-semibold text-gray-700">Enable AI-powered replies</span>
-              </label>
+              <div>
+                <label className="block text-xs font-bold text-gray-600 uppercase tracking-wide mb-2">Link AI Agent</label>
+                <p className="text-xs text-gray-400 mb-3">
+                  Assign an AI agent to handle messages that don't match any rules. The agent uses your global API key and its own knowledge base.
+                </p>
+                <select
+                  value={agentId}
+                  onChange={e => setAgentId(e.target.value)}
+                  className="w-full px-4 py-2.5 rounded-xl border border-gray-200 text-sm focus:ring-2 focus:ring-purple-500 outline-none bg-white transition-all"
+                >
+                  <option value="">No AI Agent (rules-only)</option>
+                  {agents.map(agent => (
+                    <option key={agent.id} value={agent.id}>
+                      🧠 {agent.name} {!agent.is_active ? '(inactive)' : ''}
+                    </option>
+                  ))}
+                </select>
+              </div>
 
-              {useAi && (
-                <div className="space-y-4 pl-7 border-l-2 border-purple-100">
-                  {/* Provider Cards */}
-                  <div>
-                    <label className="block text-xs font-bold text-gray-600 uppercase tracking-wide mb-2">AI Provider</label>
-                    <div className="grid grid-cols-3 gap-3">
-                      {([
-                        { value: 'openai', icon: '🟢', label: 'OpenAI', desc: 'GPT-3.5 Turbo' },
-                        { value: 'gemini', icon: '🔵', label: 'Gemini', desc: 'Gemini Pro' },
-                        { value: 'anthropic', icon: '🟠', label: 'Anthropic', desc: 'Claude Haiku' },
-                      ] as const).map(opt => (
-                        <button
-                          key={opt.value}
-                          onClick={() => setAiProvider(opt.value)}
-                          className={`p-3 rounded-xl border-2 text-left transition-all ${aiProvider === opt.value ? 'border-purple-500 bg-purple-50' : 'border-gray-100 hover:border-gray-200'}`}
-                        >
-                          <div className="text-lg mb-1">{opt.icon}</div>
-                          <div className="text-xs font-bold text-gray-800">{opt.label}</div>
-                          <div className="text-[10px] text-gray-400 mt-0.5">{opt.desc}</div>
-                        </button>
-                      ))}
-                    </div>
-                  </div>
+              {agentId && (
+                <div className="bg-purple-50 border border-purple-200 rounded-xl p-4 space-y-2">
+                  <p className="text-xs font-bold text-purple-800">How it works:</p>
+                  <ul className="text-xs text-purple-700 space-y-1 list-disc ml-4">
+                    <li>Incoming messages are first checked against your keyword rules</li>
+                    <li>If no rule matches, the AI agent generates a response</li>
+                    <li>The agent uses its system prompt + knowledge base for context</li>
+                    <li>All conversations are logged under the agent's conversation tab</li>
+                  </ul>
+                </div>
+              )}
 
-                  {/* API Key */}
-                  <div>
-                    <label className="block text-xs font-bold text-gray-600 uppercase tracking-wide mb-1.5">API Key</label>
-                    <input
-                      type="password"
-                      value={aiApiKey}
-                      onChange={e => setAiApiKey(e.target.value)}
-                      placeholder={isEdit ? '••••••••  (leave blank to keep existing)' : 'sk-...'}
-                      className="w-full px-4 py-2.5 rounded-xl border border-gray-200 text-sm focus:ring-2 focus:ring-purple-500 outline-none font-mono"
-                    />
-                    <p className="text-xs text-gray-400 mt-1">Your key is encrypted at rest and never exposed in the API.</p>
-                  </div>
-
-                  {/* System Prompt */}
-                  <div>
-                    <label className="block text-xs font-bold text-gray-600 uppercase tracking-wide mb-1.5">System Prompt</label>
-                    <textarea
-                      value={aiSystemPrompt}
-                      onChange={e => setAiSystemPrompt(e.target.value)}
-                      rows={4}
-                      className="w-full px-4 py-2.5 rounded-xl border border-gray-200 text-sm focus:ring-2 focus:ring-purple-500 outline-none resize-none"
-                    />
-                    {/* Prompt presets */}
-                    <div className="flex flex-wrap gap-1.5 mt-2">
-                      {promptPresets.map((p, i) => (
-                        <button
-                          key={i}
-                          onClick={() => setAiSystemPrompt(p.prompt)}
-                          className="px-2.5 py-1 text-[10px] font-bold rounded-lg bg-gray-100 text-gray-600 hover:bg-gray-200 transition-colors"
-                        >
-                          {p.label}
-                        </button>
-                      ))}
-                    </div>
-                  </div>
+              {agents.length === 0 && (
+                <div className="bg-gray-50 border border-gray-200 rounded-xl p-4 text-center">
+                  <p className="text-xs text-gray-500">No agents created yet.</p>
+                  <p className="text-xs text-gray-400 mt-1">Go to <span className="font-bold">AI Agents</span> in the sidebar to create one.</p>
                 </div>
               )}
             </>

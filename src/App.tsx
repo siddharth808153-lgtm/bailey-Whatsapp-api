@@ -19,14 +19,7 @@ import { DripPage } from './pages/drip/DripPage.js'
 import { SequenceBuilderPage } from './pages/drip/SequenceBuilderPage.js'
 import { EnrollmentsPage } from './pages/drip/EnrollmentsPage.js'
 import { WarmupPage } from './pages/warmup/WarmupPage.js'
-
-// Simple placeholder page for connection instances
-const InstancesPagePlaceholder: React.FC = () => (
-  <div className="p-6">
-    <h2 className="text-xl font-bold text-gray-900 mb-2">Instances & Connections</h2>
-    <p className="text-sm text-gray-400">WhatsApp Baileys instances configuration dashboard.</p>
-  </div>
-)
+import { ConnectionsPage } from './pages/instances/ConnectionsPage.js'
 
 export const App: React.FC = () => {
   const token = localStorage.getItem('wasp_token')
@@ -55,7 +48,7 @@ export const App: React.FC = () => {
         <div className="flex-1 h-full overflow-hidden relative">
           <Routes>
             <Route path="/" element={<Navigate to="/contacts" replace />} />
-            <Route path="/instances" element={<InstancesPagePlaceholder />} />
+            <Route path="/instances" element={<ConnectionsPage />} />
             
             {/* Contacts routes */}
             <Route path="/contacts" element={<ContactsPage />} />

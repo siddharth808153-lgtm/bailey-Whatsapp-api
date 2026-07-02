@@ -228,7 +228,8 @@ export const BaileysManager = {
             if (!messageData) continue
 
             // If message has media, download it
-            const messageType = getContentType(msg.message)
+            const rawMessage = unwrapMessage(msg.message)
+            const messageType = getContentType(rawMessage)
             const mediaTypes = ['imageMessage', 'videoMessage', 'documentMessage', 'audioMessage', 'stickerMessage']
             if (mediaTypes.includes(messageType)) {
               try {
@@ -243,7 +244,7 @@ export const BaileysManager = {
                 )
                 
                 // Determine file extension
-                const mimeType = msg.message[messageType]?.mimetype || ''
+                const mimeType = rawMessage[messageType]?.mimetype || ''
                 const ext = mime.extension(mimeType) || getExtensionFromType(messageType)
                 const filename = `${uuidv4()}.${ext}`
                 const storageDir = path.join(process.cwd(), '../storage/app/public/media')
@@ -255,7 +256,7 @@ export const BaileysManager = {
                 
                 // Add media metadata
                 messageData.media_url = `/storage/media/${filename}`
-                messageData.media_filename = msg.message[messageType]?.fileName || filename
+                messageData.media_filename = rawMessage[messageType]?.fileName || filename
                 messageData.mimetype = mimeType
               } catch (mediaErr) {
                 log.error('Failed to download incoming media:', mediaErr)
@@ -844,26 +845,47 @@ function getStatusMessage(status) {
   }[status] || 'Unknown'
 }
 
+function unwrapMessage(message) {
+  if (!message) return message
+  if (message.ephemeralMessage) {
+    return unwrapMessage(message.ephemeralMessage.message)
+  }
+  if (message.viewOnceMessage) {
+    return unwrapMessage(message.viewOnceMessage.message)
+  }
+  if (message.viewOnceMessageV2) {
+    return unwrapMessage(message.viewOnceMessageV2.message)
+  }
+  if (message.viewOnceMessageV2Lid) {
+    return unwrapMessage(message.viewOnceMessageV2Lid.message)
+  }
+  if (message.documentWithCaptionMessage) {
+    return unwrapMessage(message.documentWithCaptionMessage.message)
+  }
+  return message
+}
+
 function parseIncomingMessage(msg) {
   try {
-    const type = getContentType(msg.message)
+    const rawMessage = unwrapMessage(msg.message)
+    const type = getContentType(rawMessage)
     if (!type) return null
 
     let body = ''
     if (type === 'conversation') {
-      body = msg.message.conversation
+      body = rawMessage.conversation
     } else if (type === 'extendedTextMessage') {
-      body = msg.message.extendedTextMessage.text
+      body = rawMessage.extendedTextMessage.text
     } else if (type === 'imageMessage') {
-      body = msg.message.imageMessage?.caption || ''
+      body = rawMessage.imageMessage?.caption || ''
     } else if (type === 'videoMessage') {
-      body = msg.message.videoMessage?.caption || ''
+      body = rawMessage.videoMessage?.caption || ''
     } else if (type === 'buttonsResponseMessage') {
-      body = msg.message.buttonsResponseMessage?.selectedDisplayText || ''
+      body = rawMessage.buttonsResponseMessage?.selectedDisplayText || ''
     } else if (type === 'listResponseMessage') {
-      body = msg.message.listResponseMessage?.title || ''
+      body = rawMessage.listResponseMessage?.title || ''
     } else if (type === 'interactiveResponseMessage') {
-      body = msg.message.interactiveResponseMessage
+      body = rawMessage.interactiveResponseMessage
         ?.nativeFlowResponseMessage?.paramsJson || ''
     }
 
